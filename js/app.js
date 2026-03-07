@@ -1,6 +1,6 @@
 /**
  * SIMULADOR DE FACTURACIÓN TELCO - MOTOR LÓGICO CONSOLIDADO
- * js/app.js
+ * Versión: UX Optimized (Inicio en Instalación)
  */
 
 const REGLAS_NEGOCIO = {
@@ -28,7 +28,7 @@ let startX = 0;
 let startPos = 0;
 
 const TRACK_SCALE = 3;
-const SNAP_THRESHOLD = 1.4;
+const SNAP_THRESHOLD = 1.6; // Incrementado levemente para mejor agarre
 
 /**
  * MOTOR DE CICLO: Determina el ciclo según el día de instalación
@@ -93,8 +93,9 @@ function simular() {
     document.getElementById("corte").style.display = "flex";
     document.getElementById("corteLabel").style.display = "block";
 
-    // Resetear a posición de Vencimiento
-    posActual = posV1 - 5;
+    // --- MEJORA SOLICITADA ---
+    // Posicionamos la aguja exactamente sobre la Instalación al iniciar
+    posActual = posInst; 
     renderTimeline(posActual);
 }
 
@@ -139,7 +140,6 @@ const doDrag = (e) => {
     const deltaX = currentX - startX;
     const rect = timeline.getBoundingClientRect();
     
-    // Sensibilidad ajustada para control Tik-Tik
     const movimiento = (deltaX / rect.width) * 100 * 0.5;
     let nuevaPos = startPos - movimiento;
     
@@ -157,7 +157,7 @@ timeline.addEventListener("touchstart", (e) => { startDrag(e); }, {passive: fals
 window.addEventListener("touchmove", (e) => { if(isDragging) e.preventDefault(); doDrag(e); }, {passive: false});
 
 /**
- * MOTOR ESTADOS Y FINANCIERO: Evalúa mora y deuda
+ * MOTOR ESTADOS Y FINANCIERO
  */
 function actualizarDetalle() {
     if (!fechaInstalacionGlobal) return;
@@ -167,14 +167,13 @@ function actualizarDetalle() {
     const a = parseFloat(document.getElementById("anticipo").value) || 0;
     const s = p - a;
 
-    const posV1 = parseFloat(document.getElementById("vence").style.left);
-    const posC1 = parseFloat(document.getElementById("corte").style.left);
+    const posV1 = parseFloat(document.getElementById("vence").style.left) || 0;
+    const posC1 = parseFloat(document.getElementById("corte").style.left) || 0;
     const posV2 = parseFloat(document.getElementById("vence2").style.left) || 100;
 
     let estado = "EN_PLAZO";
     let color = "var(--success)";
     
-    // Cascada de estados
     if (posActual > posV1) {
         estado = "EN_MORA";
         color = "var(--warning)";
@@ -196,7 +195,6 @@ function actualizarDetalle() {
         color = "var(--dark-danger)";
     }
 
-    // Cálculos Monetarios
     let totalDeuda = (estado === "EN_PLAZO") ? s : (s + p + config.cargo_administrativo);
     
     const gestion = {
@@ -214,7 +212,6 @@ function actualizarDetalle() {
         <span class="total-factura">${config.moneda} ${totalDeuda.toLocaleString()}</span>
     `;
 
-    // Regla de Oro
     const fEmi = new Date(fechaInstalacionGlobal);
     fEmi.setDate(cicloActual);
     if (cicloActual <= fechaInstalacionGlobal.getDate()) fEmi.setMonth(fEmi.getMonth() + 1);
@@ -226,7 +223,7 @@ function actualizarDetalle() {
 }
 
 /**
- * MOTOR EXPANSIÓN: Maneja eventos del segundo mes
+ * MOTOR EXPANSIÓN
  */
 function expandirSegundaFactura(posV1) {
     const pF2 = posV1 + 12;
@@ -266,7 +263,8 @@ function setPos(id, lb, pos, txt) {
 }
 
 function aplicarSnap(pos) {
-    const hitos = ["fact", "vence", "corte", "fact2", "vence2", "corteT"];
+    // Añadido "inst" a los hitos magnéticos para mejor precisión inicial
+    const hitos = ["inst", "fact", "vence", "corte", "fact2", "vence2", "corteT"];
     for (const id of hitos) {
         const el = document.getElementById(id);
         if (el && el.style.display !== "none") {
