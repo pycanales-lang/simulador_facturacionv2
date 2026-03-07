@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Telco Pro - Precision Edition</title>
+    <title>Simulador Telco Pro - Console Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -21,52 +21,48 @@
             <input type="number" id="plan" placeholder="0">
             <label>Anticipo</label>
             <input type="number" id="anticipo" placeholder="0">
-            <div class="botones">
-                <button onclick="simular()">Simular</button>
-                <button class="btn-clear" onclick="limpiar()">Limpiar</button>
-            </div>
+            <button onclick="simular()">Simular Ciclo</button>
         </div>
 
         <div id="meses" class="meses"></div>
 
         <div class="timeline" id="timeline">
-            <div id="playhead"><div class="playhead-arrow"></div></div>
+            <div id="playhead">
+                <div id="diaBadge">Día 0</div>
+                <div class="playhead-arrow"></div>
+            </div>
 
             <div id="timelineTrack">
                 <div class="line"></div>
                 <div id="exoBar" class="exoneracion-bar"></div>
-                <div id="exoLabel" class="label bottom" style="color:var(--success); font-style:italic">Prorrateo exonerado</div>
+                <div id="exoLabel" class="label bottom" style="color:var(--success); font-style:italic">Prorrateo</div>
                 
                 <div id="inst" class="event install bottom">I</div>
                 <div id="instLabel" class="label bottom">Inst</div>
-                
                 <div id="fact" class="event invoice bottom">1</div>
-                <div id="factLabel" class="label bottom">Factura 1</div>
-                
+                <div id="factLabel" class="label bottom">F1</div>
                 <div id="pay" class="event pay top">P</div>
                 <div id="payLabel" class="label top">Pago</div>
-                
                 <div id="vence" class="event charge top">V</div>
-                <div id="venceLabel" class="label top">Vencimiento</div>
-
+                <div id="venceLabel" class="label top">Vence</div>
                 <div id="corte" class="event charge top" style="display:none">C</div>
                 <div id="corteLabel" class="label top" style="display:none">Corte</div>
-                
                 <div id="fact2" class="event invoice bottom" style="display:none">2</div>
-                <div id="fact2Label" class="label bottom" style="display:none">Factura 2</div>
-                
                 <div id="vence2" class="event charge top" style="display:none">V</div>
-                <div id="vence2Label" class="label top" style="display:none">Vencimiento 2</div>
-
                 <div id="corteT" class="event charge-total top" style="display:none">T</div>
-                <div id="corteTLabel" class="label top" style="display:none">Corte Total</div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <label>DESLIZA PARA NAVEGAR EN EL TIEMPO</label>
+            <div class="slider-container" id="sliderArea">
+                <div id="sliderJoy"></div>
             </div>
         </div>
 
         <div id="info" class="result"></div>
         <div id="bannerChurn" class="churn-banner">
-            <h4 style="font-size:13px; color:white">🚨 RIESGO CRÍTICO: Early Churn</h4>
-            <p style="font-size:11px; color:#ffdadd">Cuenta nueva con mora detectada.</p>
+            <h4 style="font-size:13px; color:white">🚨 RIESGO: Early Churn</h4>
         </div>
         <div id="detalleFacturacion" class="result"></div>
     </div>
@@ -76,7 +72,6 @@
             <div style="text-align:right; font-weight:bold; cursor:pointer" onclick="cerrarAyuda()">CERRAR ✖</div>
             <img src="assets/imagenes/Diapositiva2.PNG" alt="Tutorial">
             <img src="assets/imagenes/Diapositiva3.PNG" alt="Tutorial">
-            <img src="assets/imagenes/Diapositiva4.PNG" alt="Tutorial">
         </div>
     </div>
 
