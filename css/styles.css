@@ -7,46 +7,38 @@
 body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, var(--tigo), var(--tigo2)); color: white; padding: 20px; min-height: 100vh; overflow-x: hidden; }
 
 .container { max-width: 450px; margin: auto; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.title { font-size: 20px; font-weight: 600; }
-.help { width: 36px; height: 36px; background: white; color: var(--tigo); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
+.card { background: rgba(255,255,255,0.12); padding: 18px; border-radius: 16px; margin-bottom: 10px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+label { font-size: 10px; opacity: 0.8; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+input { width: 100%; height: 45px; padding: 12px; border-radius: 10px; border: none; margin-bottom: 10px; color: #333; }
+button { width: 100%; padding: 12px; border: none; border-radius: 10px; background: white; color: var(--tigo); font-weight: 600; cursor: pointer; }
 
-.card { background: rgba(255,255,255,0.12); padding: 18px; border-radius: 16px; margin-bottom: 15px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-label { font-size: 11px; opacity: 0.8; display: block; margin-bottom: 5px; text-transform: uppercase; }
-input { width: 100%; height: 48px; padding: 12px; border-radius: 12px; border: none; font-size: 14px; background: #f2f2f2; margin-bottom: 15px; color: #333; }
+/* Timeline Visor */
+.timeline { position: relative; height: 160px; margin-top: 10px; background: rgba(0,0,0,0.3); border-radius: 12px; overflow: hidden; }
+#timelineTrack { position: absolute; width: 300%; height: 100%; left: 0; transition: transform 0.1s linear; pointer-events: none; }
+.line { position: absolute; top: 50%; width: 100%; height: 2px; background: rgba(255,255,255,0.2); }
 
-button { width: 100%; padding: 14px; border: none; border-radius: 12px; background: white; color: var(--tigo); font-weight: 600; cursor: pointer; margin-bottom: 5px; }
+/* Playhead con Contador */
+#playhead { position: absolute; left: 50%; top: 0; width: 2px; height: 100%; background: white; z-index: 100; pointer-events: none; }
+#diaBadge { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: white; color: var(--tigo); padding: 2px 10px; border-radius: 5px; font-size: 12px; font-weight: bold; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+.playhead-arrow { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid white; }
 
-/* Timeline Tik-Tik */
-.timeline { position: relative; height: 180px; margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: 12px; overflow: hidden; cursor: grab; }
-#timelineTrack { 
-    position: absolute; 
-    width: 300%; 
-    height: 100%; 
-    left: 0; 
-    transition: transform 0.08s linear; /* Respuesta casi instantánea */
-    pointer-events: none; 
-}
-.line { position: absolute; top: 50%; width: 100%; height: 4px; background: rgba(255,255,255,0.3); }
+/* Mando de Control */
+.control-panel { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 16px; margin-top: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+.slider-container { position: relative; width: 100%; height: 50px; background: rgba(255,255,255,0.1); border-radius: 25px; margin-top: 10px; cursor: pointer; overflow: hidden; }
+#sliderJoy { position: absolute; left: 0; top: 5px; width: 40px; height: 40px; background: white; border-radius: 50%; box-shadow: 0 0 15px rgba(255,255,255,0.5); transition: left 0.1s linear; }
 
-#playhead { position: absolute; left: 50%; top: 0; width: 2px; height: 100%; background: white; z-index: 100; box-shadow: 0 0 8px white; pointer-events: none; }
-.playhead-arrow { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid white; }
-
-.event { position: absolute; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; transform: translate(-50%, -50%); transition: 0.2s; }
+/* Elementos Timeline */
+.event { position: absolute; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; transform: translate(-50%, -50%); font-size: 12px; }
 .top { top: 35%; } .bottom { top: 65%; }
-
 .install { background: #4CC9F0; } .invoice { background: var(--warning); color: #333; }
 .pay { background: var(--success); border: 2px solid white; } .charge { background: var(--danger); }
-.charge-total { background: var(--dark-danger); color: white; }
+.charge-total { background: var(--dark-danger); }
+.label { position: absolute; font-size: 9px; width: 60px; text-align: center; transform: translateX(-50%); font-weight: 600; }
+.label.top { top: 10%; } .label.bottom { top: 85%; }
 
-.label { position: absolute; font-size: 10px; width: 80px; text-align: center; transform: translateX(-50%); font-weight: 600; }
-.label.top { top: 5%; } .label.bottom { top: 85%; }
-
-.exoneracion-bar { position: absolute; top: 48%; height: 8px; background: var(--success); opacity: 0.3; border-radius: 4px; }
-
-.state-badge { padding: 4px 10px; border-radius: 6px; font-weight: 600; display: inline-block; margin-bottom: 10px; font-size: 12px; }
-.total-factura { font-size: 24px; color: var(--warning); font-weight: 600; }
-
+/* Otros */
+.exoneracion-bar { position: absolute; top: 49%; height: 4px; background: var(--success); opacity: 0.4; border-radius: 2px; }
+.state-badge { padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 12px; margin-bottom: 10px; display: inline-block; }
+.total-factura { font-size: 26px; color: var(--warning); font-weight: 600; }
 .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 1000; }
-.modal-content { background: white; padding: 20px; border-radius: 16px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
-.modal-content img { width: 100%; border-radius: 8px; margin-bottom: 15px; }
+.modal-content { background: white; padding: 20px; border-radius: 16px; max-width: 500px; width: 90%; color: #333; }
