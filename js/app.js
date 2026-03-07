@@ -1,15 +1,15 @@
 /**
- * SIMULADOR DE FACTURACIÓN TELCO - MOTOR LÓGICO CONSOLIDADO
- * Versión: UX Optimized (Inicio en Instalación)
+ * SIMULADOR DE FACTURACIÓN TELCO - FIX: SINCRONIZACIÓN TOTAL
+ * Asegura que las esferas y los meses coincidan con la fecha de instalación.
  */
 
 const REGLAS_NEGOCIO = {
     HOME: {
         ciclos: {
-            1:  { emision: 1,  vence: 15, pago_inicio: 1,  pago_fin: 14, corte: [3, 4] },
-            7:  { emision: 7,  vence: 21, pago_inicio: 7,  pago_fin: 21, corte: [9, 10] },
-            15: { emision: 15, vence: 1,  pago_inicio: 15, pago_fin: 1,  corte: [17, 18] },
-            21: { emision: 21, vence: 5,  pago_inicio: 21, pago_fin: 4,  corte: [22, 23] }
+            1:  { emision: 1,  vence: 15, corte: [3, 4] },
+            7:  { emision: 7,  vence: 21, corte: [9, 10] },
+            15: { emision: 15, vence: 1,  corte: [17, 18] },
+            21: { emision: 21, vence: 5,  corte: [22, 23] }
         },
         config: {
             moneda: "LOCAL",
@@ -18,21 +18,16 @@ const REGLAS_NEGOCIO = {
     }
 };
 
-// Variables Globales de Estado
 let posActual = 0;
 let fechaInstalacionGlobal = null;
 let cicloActual = 0;
-let esCuentaNueva = false;
 let isDragging = false;
 let startX = 0;
 let startPos = 0;
 
 const TRACK_SCALE = 3;
-const SNAP_THRESHOLD = 1.6; // Incrementado levemente para mejor agarre
+const SNAP_THRESHOLD = 1.6;
 
-/**
- * MOTOR DE CICLO: Determina el ciclo según el día de instalación
- */
 function obtenerCicloAsignado(dia) {
     if (dia >= 1 && dia <= 6) return 7;
     if (dia >= 7 && dia <= 14) return 15;
@@ -41,27 +36,25 @@ function obtenerCicloAsignado(dia) {
 }
 
 /**
- * MOTOR DE SIMULACIÓN: Inicia el proceso y posiciona hitos
+ * MOTOR DE SIMULACIÓN CORREGIDO
  */
 function simular() {
     const fStr = document.getElementById("fecha").value;
     if (!fStr) return alert("Ingrese fecha de instalación");
 
+    // Forzamos la lectura de la fecha y reiniciamos el estado
     fechaInstalacionGlobal = new Date(fStr + 'T00:00:00');
     const dia = fechaInstalacionGlobal.getDate();
     cicloActual = obtenerCicloAsignado(dia);
 
-    // Verificar Early Churn (< 4 meses)
-    const hoy = new Date();
-    const mesesDiff = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 + (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
-    esCuentaNueva = mesesDiff <= 4;
-
+    // 1. Actualizar los nombres de los meses en la cabecera inmediatamente
     actualizarMeses(false);
 
-    // Posicionamiento porcentual (Base 60 días)
+    // 2. Calcular posiciones relativas (Base 60 días)
+    // posInst siempre será relativa al inicio del primer mes mostrado
     const posInst = (dia / 60) * 100;
     
-    // Lógica de emisión factura 1
+    // Calcular Factura 1 basándose en el ciclo
     let posFact = (cicloActual <= dia && cicloActual !== 1) 
         ? ((30 + cicloActual) / 60) * 100 
         : (cicloActual === 1 ? 52 : (cicloActual / 60) * 100);
@@ -78,192 +71,132 @@ function simular() {
         ? (reglas.corte[0] + (30 - cicloActual)) / 60 * 100 
         : (reglas.corte[0] - cicloActual) / 60 * 100);
 
-    // Dibujar en Track
+    // 3. RE-RENDERIZAR ESFERAS (Sincronización visual)
     setPos("inst", "instLabel", posInst, "I");
     setPos("fact", "factLabel", posFact, "1");
     setPos("vence", "venceLabel", posV1, "V");
     setPos("corte", "corteLabel", posC1, "C");
 
-    // Exoneración bar
+    // Ajustar barra de exoneración
     const exoBar = document.getElementById("exoBar");
     exoBar.style.left = posInst + "%";
     exoBar.style.width = (posFact - posInst) + "%";
     document.getElementById("exoLabel").style.left = (posInst + (posFact - posInst) / 2) + "%";
 
-    document.getElementById("corte").style.display = "flex";
-    document.getElementById("corteLabel").style.display = "block";
-
-    // --- MEJORA SOLICITADA ---
-    // Posicionamos la aguja exactamente sobre la Instalación al iniciar
+    // 4. POSICIONAR AGUJA Y TRACK
     posActual = posInst; 
     renderTimeline(posActual);
 }
 
-/**
- * MOTOR TIMELINE: Maneja el desplazamiento del track y el badge de días
- */
 function renderTimeline(pos) {
     const track = document.getElementById("timelineTrack");
     const diaBadge = document.getElementById("diaBadge");
 
-    // Snap a eventos cercanos
     posActual = aplicarSnap(pos);
 
-    // Mover Track (Playhead fijo al 50%)
     const offset = (50 - posActual) * TRACK_SCALE;
     track.style.transform = `translateX(${offset}%)`;
 
-    // Actualizar Badge de Días
+    // El badge ahora muestra el día real del calendario
     const diasSimulados = Math.round((posActual / 100) * 60);
     diaBadge.innerText = `Día ${diasSimulados}`;
 
-    // Sincronizar Pago (P) con Aguja
     setPos("pay", "payLabel", posActual, "P");
-
     actualizarDetalle();
 }
 
 /**
- * MOTOR DRAG: Implementación de arrastre relativo
+ * ACTUALIZACIÓN DE MESES DINÁMICA
  */
+function actualizarMeses(tresMeses) {
+    if (!fechaInstalacionGlobal) return;
+    const nombresMeses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    
+    const mes1 = fechaInstalacionGlobal.getMonth();
+    const f2 = new Date(fechaInstalacionGlobal);
+    f2.setMonth(f2.getMonth() + 1);
+    const mes2 = f2.getMonth();
+    const f3 = new Date(fechaInstalacionGlobal);
+    f3.setMonth(f3.getMonth() + 2);
+    const mes3 = f3.getMonth();
+    
+    document.getElementById("meses").innerHTML = `
+        <span>${nombresMeses[mes1]}</span>
+        <span>${nombresMeses[mes2]}</span>
+        ${tresMeses ? `<span>${nombresMeses[mes3]}</span>` : ""}
+    `;
+}
+
+// Motores de Drag (Sin cambios para mantener estabilidad)
 const timeline = document.getElementById("timeline");
-
-const startDrag = (e) => {
-    isDragging = true;
-    startX = e.touches ? e.touches[0].clientX : e.clientX;
-    startPos = posActual;
-};
-
+const startDrag = (e) => { isDragging = true; startX = e.touches ? e.touches[0].clientX : e.clientX; startPos = posActual; };
 const doDrag = (e) => {
     if (!isDragging) return;
     const currentX = e.touches ? e.touches[0].clientX : e.clientX;
     const deltaX = currentX - startX;
     const rect = timeline.getBoundingClientRect();
-    
     const movimiento = (deltaX / rect.width) * 100 * 0.5;
-    let nuevaPos = startPos - movimiento;
-    
-    renderTimeline(Math.max(0, Math.min(100, nuevaPos)));
+    renderTimeline(Math.max(0, Math.min(100, startPos - movimiento)));
 };
-
 const stopDrag = () => { isDragging = false; };
 
 timeline.addEventListener("mousedown", startDrag);
 window.addEventListener("mousemove", doDrag);
 window.addEventListener("mouseup", stopDrag);
 window.addEventListener("touchend", stopDrag);
-
 timeline.addEventListener("touchstart", (e) => { startDrag(e); }, {passive: false});
 window.addEventListener("touchmove", (e) => { if(isDragging) e.preventDefault(); doDrag(e); }, {passive: false});
 
-/**
- * MOTOR ESTADOS Y FINANCIERO
- */
 function actualizarDetalle() {
     if (!fechaInstalacionGlobal) return;
-
-    const config = REGLAS_NEGOCIO.HOME.config;
     const p = parseFloat(document.getElementById("plan").value) || 0;
     const a = parseFloat(document.getElementById("anticipo").value) || 0;
     const s = p - a;
+    const config = REGLAS_NEGOCIO.HOME.config;
 
     const posV1 = parseFloat(document.getElementById("vence").style.left) || 0;
     const posC1 = parseFloat(document.getElementById("corte").style.left) || 0;
-    const posV2 = parseFloat(document.getElementById("vence2").style.left) || 100;
 
     let estado = "EN_PLAZO";
     let color = "var(--success)";
     
-    if (posActual > posV1) {
-        estado = "EN_MORA";
-        color = "var(--warning)";
-        if (esCuentaNueva) document.getElementById("bannerChurn").style.display = "block";
-    } else {
-        document.getElementById("bannerChurn").style.display = "none";
-    }
-
-    if (posActual >= posC1) {
-        estado = "CORTE_PARCIAL";
-        color = "var(--danger)";
-        expandirSegundaFactura(posV1);
-    } else {
-        contraerSegundaFactura();
-    }
-
-    if (posActual >= posV2) {
-        estado = "CORTE_TOTAL";
-        color = "var(--dark-danger)";
-    }
+    if (posActual > posV1) { estado = "EN_MORA"; color = "var(--warning)"; }
+    if (posActual >= posC1) { estado = "CORTE_PARCIAL"; color = "var(--danger)"; expandirSegundaFactura(posV1); } 
+    else { contraerSegundaFactura(); }
 
     let totalDeuda = (estado === "EN_PLAZO") ? s : (s + p + config.cargo_administrativo);
     
-    const gestion = {
-        "EN_PLAZO": "Cliente al día. No requiere gestión.",
-        "EN_MORA": "Gestión recomendada: contactar cliente antes del corte.",
-        "CORTE_PARCIAL": "Servicio suspendido. Cliente debe regularizar deuda.",
-        "CORTE_TOTAL": "Servicio cancelado por mora prolongada."
-    };
-
     document.getElementById("info").innerHTML = `
-        <div class="state-badge" style="background:${color}; color:${estado === 'EN_MORA' ? '#333' : 'white'}">
-            ${estado.replace("_", " ")}
-        </div>
-        <p style="font-size:12px; margin-bottom:10px; opacity:0.9">${gestion[estado]}</p>
+        <div class="state-badge" style="background:${color}; color:${estado === 'EN_MORA' ? '#333' : 'white'}">${estado.replace("_", " ")}</div>
         <span class="total-factura">${config.moneda} ${totalDeuda.toLocaleString()}</span>
-    `;
-
-    const fEmi = new Date(fechaInstalacionGlobal);
-    fEmi.setDate(cicloActual);
-    if (cicloActual <= fechaInstalacionGlobal.getDate()) fEmi.setMonth(fEmi.getMonth() + 1);
-    
-    document.getElementById("detalleFacturacion").innerHTML = `
-        <small>Emisión F1: ${fEmi.toLocaleDateString()}</small><br>
-        <small>Saldo F1: ${config.moneda} ${s.toLocaleString()}</small>
     `;
 }
 
-/**
- * MOTOR EXPANSIÓN
- */
 function expandirSegundaFactura(posV1) {
-    const pF2 = posV1 + 12;
-    const pV2 = pF2 + 15;
-    const pCT = pV2 + 10;
-
+    const pF2 = posV1 + 12; const pV2 = pF2 + 15; const pCT = pV2 + 10;
     setPos("fact2", "fact2Label", pF2, "2");
     setPos("vence2", "vence2Label", pV2, "V");
     setPos("corteT", "corteTLabel", pCT, "T");
-
     ["fact2", "fact2Label", "vence2", "vence2Label", "corteT", "corteTLabel"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = id.includes("Label") ? "block" : "flex";
+        const el = document.getElementById(id); if (el) el.style.display = id.includes("Label") ? "block" : "flex";
     });
     actualizarMeses(true);
 }
 
 function contraerSegundaFactura() {
     ["fact2", "fact2Label", "vence2", "vence2Label", "corteT", "corteTLabel"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = "none";
+        const el = document.getElementById(id); if (el) el.style.display = "none";
     });
     actualizarMeses(false);
 }
 
-/**
- * FUNCIONES AUXILIARES
- */
 function setPos(id, lb, pos, txt) {
-    const el = document.getElementById(id);
-    const label = document.getElementById(lb);
-    if (el) {
-        el.style.left = pos + "%";
-        el.innerHTML = txt;
-    }
+    const el = document.getElementById(id); const label = document.getElementById(lb);
+    if (el) { el.style.left = pos + "%"; el.innerHTML = txt; }
     if (label) label.style.left = pos + "%";
 }
 
 function aplicarSnap(pos) {
-    // Añadido "inst" a los hitos magnéticos para mejor precisión inicial
     const hitos = ["inst", "fact", "vence", "corte", "fact2", "vence2", "corteT"];
     for (const id of hitos) {
         const el = document.getElementById(id);
@@ -273,20 +206,6 @@ function aplicarSnap(pos) {
         }
     }
     return pos;
-}
-
-function actualizarMeses(tresMeses) {
-    if (!fechaInstalacionGlobal) return;
-    const m = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    const f1 = fechaInstalacionGlobal;
-    const f2 = new Date(f1.getFullYear(), f1.getMonth() + 1, 1);
-    const f3 = new Date(f1.getFullYear(), f1.getMonth() + 2, 1);
-    
-    document.getElementById("meses").innerHTML = `
-        <span>${m[f1.getMonth()]}</span>
-        <span>${m[f2.getMonth()]}</span>
-        ${tresMeses ? `<span>${m[f3.getMonth()]}</span>` : ""}
-    `;
 }
 
 function abrirAyuda() { document.getElementById("modalAyuda").style.display = "flex"; }
