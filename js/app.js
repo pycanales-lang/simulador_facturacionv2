@@ -1,19 +1,22 @@
 /**
- * SIMULADOR TELCO PRO - MOTOR SINCRONIZADO SIEBEL 2026
+ * SIMULADOR TELCO PRO - MOTOR DINÁMICO SIEBEL 2026
+ * Sincronización total de Timeline, Esferas y Mensajes de Negocio
  */
+
 const REGLAS_NEGOCIO = {
-    HOME: {
-        ciclos: {
-            1:  { emision: 1,  vence: 15, corte: [22, 23] },
-            7:  { emision: 7,  vence: 21, corte: [9, 10] },
-            15: { emision: 15, vence: 1,  corte: [17, 18] },
-            21: { emision: 21, vence: 5,  corte: [22, 23] }
-        }
-    }
+    ciclos: {
+        1:  { emision: 1,  vence: 15, corte: 22 },
+        7:  { emision: 7,  vence: 21, corte: 9 }, // Del mes siguiente
+        15: { emision: 15, vence: 1,  corte: 17 }, // Del mes siguiente
+        21: { emision: 21, vence: 5,  corte: 22 }  // Del mes siguiente
+    },
+    config: { cargo_adm: 12000 }
 };
 
-let posActual = 0, fechaInstalacionGlobal = null, esCuentaNueva = false, cicloActual = 0;
-const TRACK_SCALE = 3;
+let posActual = 0, fechaInstalacionGlobal = null, cicloActual = 0, esCuentaNueva = false;
+let isDragging = false, startX = 0, startPos = 0;
+
+const TRACK_SCALE = 3; // Escala visual
 
 function obtenerCicloAsignado(dia) {
     if (dia <= 6) return 7; 
@@ -23,46 +26,53 @@ function obtenerCicloAsignado(dia) {
 }
 
 function simular() {
-    let fStr = document.getElementById("fecha").value;
-    if (!fStr) return alert("Ingrese fecha de instalación");
-    
-    // Reiniciar sistema
-    fechaInstalacionGlobal = new Date(fStr + 'T00:00:00');
-    let dia = fechaInstalacionGlobal.getDate();
-    cicloActual = obtenerCicloAsignado(dia);
+    const fStr = document.getElementById("fecha").value;
+    if (!fStr) return alert("Seleccione fecha de instalación");
 
-    // Determinar si es cuenta nueva (Early Churn < 4 meses)
-    let hoy = new Date();
-    let diffMeses = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 + (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
+    fechaInstalacionGlobal = new Date(fStr + 'T00:00:00');
+    const diaInst = fechaInstalacionGlobal.getDate();
+    cicloActual = obtenerCicloAsignado(diaInst);
+
+    // Verificar Early Churn (< 4 meses desde hoy)
+    const hoy = new Date();
+    const diffMeses = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 + (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
     esCuentaNueva = diffMeses <= 4;
 
-    actualizarMeses(false);
+    actualizarMesesUI(false);
 
-    // --- CÁLCULO DE POSICIONES EXACTAS (Base 60 días) ---
-    let posInst = (dia / 60) * 100;
+    // --- CÁLCULO DE POSICIONES (Base 60 días para cubrir 2 meses) ---
+    // Posición Instalación (Día 0 de la simulación)
+    const posInst = (diaInst / 60) * 100;
     
-    // Factura 1: Si el ciclo es menor al día de instalación, cae en el mes siguiente
-    let diaEmision = cicloActual;
-    let posFact = (diaEmision <= dia && cicloActual !== 1) ? ((30 + diaEmision) / 60) * 100 : (cicloActual === 1 ? 52 : (diaEmision / 60) * 100);
-    
-    let diaV1 = REGLAS_NEGOCIO.HOME.ciclos[cicloActual].vence;
-    let posV1 = posFact + (diaV1 < cicloActual ? (diaV1 + (30 - cicloActual)) / 60 * 100 : (diaV1 - cicloActual) / 60 * 100);
-    
-    let diaC1 = REGLAS_NEGOCIO.HOME.ciclos[cicloActual].corte[0];
-    let posC1 = posFact + (diaC1 < cicloActual ? (diaC1 + (30 - cicloActual)) / 60 * 100 : (diaC1 - cicloActual) / 60 * 100);
+    // Posición Factura 1 (Ciclo más cercano)
+    let posFact1 = (cicloActual <= diaInst && cicloActual !== 1) 
+        ? ((30 + cicloActual) / 60) * 100 
+        : (cicloActual === 1 ? 52 : (cicloActual / 60) * 100);
 
-    // Renderizar esferas en el track
+    const regla = REGLAS_NEGOCIO.ciclos[cicloActual];
+    
+    // Posición Vencimiento 1
+    const posV1 = posFact1 + (regla.vence < cicloActual 
+        ? (regla.vence + (30 - cicloActual)) / 60 * 100 
+        : (regla.vence - cicloActual) / 60 * 100);
+    
+    // Posición Corte Parcial
+    const posC1 = posFact1 + (regla.corte < cicloActual 
+        ? (regla.corte + (30 - cicloActual)) / 60 * 100 
+        : (regla.corte - cicloActual) / 60 * 100);
+
+    // Renderizar Hitos en el Track
     setPos("inst", "instLabel", posInst, "I");
-    setPos("fact", "factLabel", posFact, "1");
+    setPos("fact", "factLabel", posFact1, "1");
     setPos("vence", "venceLabel", posV1, "V");
     setPos("corte", "corteLabel", posC1, "C");
-    
-    // Barra de exoneración
-    let exoBar = document.getElementById("exoBar");
-    exoBar.style.left = posInst + "%";
-    exoBar.style.width = (posFact - posInst) + "%";
 
-    // Iniciar aguja en Instalación
+    // Barra de exoneración (Entre I y 1)
+    const exoBar = document.getElementById("exoBar");
+    exoBar.style.left = posInst + "%";
+    exoBar.style.width = (posFact1 - posInst) + "%";
+
+    // INICIO: Posicionar aguja sobre Instalación
     posActual = posInst;
     renderTimeline(posActual);
 }
@@ -70,119 +80,135 @@ function simular() {
 function renderTimeline(pos) {
     const track = document.getElementById("timelineTrack");
     const diaBadge = document.getElementById("diaBadge");
-    
-    // El track se mueve para que la aguja central (50%) coincida con 'pos'
+
+    // Movimiento del track para que la aguja central coincida con 'pos'
     const offset = (50 - pos) * TRACK_SCALE;
     track.style.transform = `translateX(${offset}%)`;
-    
-    let diasTrans = Math.round((pos / 100) * 60);
-    diaBadge.innerText = `Día ${diasTrans}`;
-    
+
+    // Calcular días transcurridos desde el inicio del mes 1
+    const diaCalendario = Math.round((pos / 100) * 60);
+    diaBadge.innerText = `Día ${diaCalendario}`;
+
     setPos("pay", "payLabel", pos, "P");
-    actualizarDetalle();
+    actualizarLogicaNegocio(pos);
 }
 
-function actualizarDetalle() {
+function actualizarLogicaNegocio(pos) {
     if (!fechaInstalacionGlobal) return;
-    let p = parseFloat(document.getElementById("plan").value) || 0;
-    let a = parseFloat(document.getElementById("anticipo").value) || 0;
-    let s = p - a;
 
-    let posV1 = parseFloat(document.getElementById("vence").style.left);
-    let posC1 = parseFloat(document.getElementById("corte").style.left);
+    const p = parseFloat(document.getElementById("plan").value) || 0;
+    const a = parseFloat(document.getElementById("anticipo").value) || 0;
+    const saldoF1 = p - a;
 
-    let estado = "EN PLAZO", color = "var(--success)", msg = "Cliente al día. No requiere gestión.";
+    const posInst = parseFloat(document.getElementById("inst").style.left);
+    const posFact1 = parseFloat(document.getElementById("fact").style.left);
+    const posV1 = parseFloat(document.getElementById("vence").style.left);
+    const posC1 = parseFloat(document.getElementById("corte").style.left);
 
-    // Lógica de Estados
-    if (posActual > posV1) {
-        estado = "EN MORA"; color = "var(--warning)"; msg = "⚠ Cliente no pagó la 1ra factura.";
+    let estado = "EN PLAZO", color = "var(--success)", mensaje = "";
+    
+    // 1. Mensaje de Exoneración (Mientras esté entre Instalación y Factura 1)
+    if (pos >= posInst && pos < posFact1) {
+        const diasExo = Math.round(((posFact1 - posInst) / 100) * 60);
+        mensaje = `Días exonerados: ${diasExo} (desde instalación hasta emisión).`;
+    }
+
+    // 2. Lógica de Mora
+    if (pos > posV1) {
+        estado = "EN MORA"; color = "var(--warning)";
+        mensaje = "⚠ Cliente superó fecha de vencimiento. Genera cargo administrativo.";
         if (esCuentaNueva) document.getElementById("bannerChurn").style.display = "block";
     } else {
         document.getElementById("bannerChurn").style.display = "none";
     }
 
-    if (posActual >= posC1) {
-        estado = "CORTE PARCIAL"; color = "var(--danger)"; msg = "🚨 Servicio suspendido por mora.";
-        expandirSegundaFactura(posV1);
+    // 3. Lógica de Corte y 2da Factura
+    if (pos >= posC1) {
+        estado = "CORTE PARCIAL"; color = "var(--danger)";
+        mensaje = "🚨 Servicio Suspendido. Se emite 2da factura con saldo pendiente.";
+        mostrarSegundaFactura(posV1);
     } else {
-        contraerSegundaFactura();
+        ocultarSegundaFactura();
     }
 
-    // Cálculo Financiero
-    let total = (estado === "EN PLAZO") ? s : (s + p + 12000);
-    
+    // 4. Cálculo de Deuda
+    const total = (estado === "EN PLAZO") ? saldoF1 : (saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm);
+
     document.getElementById("info").innerHTML = `
         <div class="state-badge" style="background:${color}; color:${estado === 'EN MORA' ? 'black' : 'white'}">${estado}</div>
-        <p style="font-size:12px; margin-bottom:5px; font-weight:600">${msg}</p>
-        ${estado !== "EN PLAZO" ? `
-            <small>Saldo F1: ${s.toLocaleString()}</small><br>
-            <small>Plan Mes 2: ${p.toLocaleString()}</small><br>
-            <small>Gasto Adm: 12.000</small><br>
-        ` : ''}
+        <p style="font-size:13px; font-weight:600">${mensaje}</p>
         <span class="total-factura">Gs. ${total.toLocaleString()}</span>
     `;
 
-    // Regla de Oro
-    let fEmi = new Date(fechaInstalacionGlobal);
+    // Detalle de fechas (Regla de Oro)
+    const fEmi = new Date(fechaInstalacionGlobal);
     fEmi.setDate(cicloActual);
     if (cicloActual <= fechaInstalacionGlobal.getDate()) fEmi.setMonth(fEmi.getMonth() + 1);
-    
+
     document.getElementById("detalleFacturacion").innerHTML = `
-        Ciclo Asignado: <strong>${cicloActual}</strong> | Emisión F1: <strong>${fEmi.toLocaleDateString()}</strong><br>
-        <span class="tip-pago">Sugerencia: Pagar en los primeros 3 días de emisión.</span>
+        Ciclo: <strong>${cicloActual}</strong> | Emisión F1: <strong>${fEmi.toLocaleDateString()}</strong><br>
+        Saldo inicial: <strong>Gs. ${saldoF1.toLocaleString()}</strong>
     `;
 }
 
-// Motores de movimiento y auxiliares se mantienen...
+// --- FUNCIONES DE CONTROL VISUAL ---
+
+function mostrarSegundaFactura(posV1) {
+    const pF2 = posV1 + 10;
+    const pV2 = pF2 + 15;
+    const pCT = pV2 + 8;
+    setPos("fact2", "fact2Label", pF2, "2");
+    setPos("vence2", "vence2Label", pV2, "V");
+    setPos("corteT", "corteTLabel", pCT, "T");
+    ["fact2", "fact2Label", "vence2", "vence2Label", "corteT", "corteTLabel", "corte", "corteLabel"].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = id.includes("Label") ? "block" : "flex";
+    });
+    actualizarMesesUI(true);
+}
+
+function ocultarSegundaFactura() {
+    ["fact2", "fact2Label", "vence2", "vence2Label", "corteT", "corteTLabel"].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = "none";
+    });
+    actualizarMesesUI(false);
+}
+
 function setPos(id, lb, pos, txt) {
-    let e = document.getElementById(id), l = document.getElementById(lb);
-    if(e) { e.style.left = pos + "%"; e.innerHTML = txt; }
-    if(l) l.style.left = pos + "%";
+    const e = document.getElementById(id), l = document.getElementById(lb);
+    if (e) { e.style.left = pos + "%"; e.innerHTML = txt; }
+    if (l) l.style.left = pos + "%";
 }
 
-function expandirSegundaFactura(v1) {
-    let pf2 = v1 + 12, pv2 = pf2 + 15, pct = pv2 + 10;
-    setPos("fact2", "fact2Label", pf2, "2");
-    setPos("vence2", "vence2Label", pv2, "V");
-    setPos("corteT", "corteTLabel", pct, "T");
-    ["fact2","fact2Label","vence2","vence2Label","corteT","corteTLabel","corte","corteLabel"].forEach(id => {
-        let el = document.getElementById(id); if(el) el.style.display = id.includes("Label")?"block":"flex";
-    });
-    actualizarMeses(true);
+function actualizarMesesUI(tresMeses) {
+    if (!fechaInstalacionGlobal) return;
+    const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const m1 = fechaInstalacionGlobal.getMonth();
+    const m2 = (m1 + 1) % 12;
+    const m3 = (m1 + 2) % 12;
+    document.getElementById("meses").innerHTML = `
+        <span>${meses[m1]}</span><span>${meses[m2]}</span>${tresMeses ? `<span>${meses[m3]}</span>` : ""}
+    `;
 }
 
-function contraerSegundaFactura() {
-    ["fact2","fact2Label","vence2","vence2Label","corteT","corteTLabel"].forEach(id => {
-        let el = document.getElementById(id); if(el) el.style.display = "none";
-    });
-    actualizarMeses(false);
-}
-
-function actualizarMeses(tres) {
-    if(!fechaInstalacionGlobal) return;
-    let m = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-    let f = fechaInstalacionGlobal;
-    let m1 = m[f.getMonth()], f2 = new Date(f); f2.setMonth(f2.getMonth()+1);
-    let m2 = m[f2.getMonth()], f3 = new Date(f); f3.setMonth(f3.getMonth()+2);
-    let m3 = m[f3.getMonth()];
-    document.getElementById("meses").innerHTML = `<span>${m1}</span><span>${m2}</span>${tres?`<span>${m3}</span>`:''}`;
-}
-
+// Interacción Drag
 const timeline = document.getElementById("timeline");
-let dragging = false;
-const move = (e) => {
-    if(!dragging) return;
-    let rect = timeline.getBoundingClientRect();
-    let x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-    posActual = Math.max(0, Math.min(100, (x / rect.width) * 100));
+const dragStart = (e) => { isDragging = true; startX = e.touches ? e.touches[0].clientX : e.clientX; startPos = posActual; timeline.style.cursor = "grabbing"; };
+const dragMove = (e) => {
+    if (!isDragging) return;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const rect = timeline.getBoundingClientRect();
+    const delta = ((x - startX) / rect.width) * 100 * 0.5;
+    posActual = Math.max(0, Math.min(100, startPos - delta));
     renderTimeline(posActual);
 };
-timeline.addEventListener("mousedown", (e) => { dragging = true; move(e); });
-window.addEventListener("mouseup", () => dragging = false);
-window.addEventListener("mousemove", move);
-timeline.addEventListener("touchstart", (e) => { dragging = true; move(e); });
-window.addEventListener("touchend", () => dragging = false);
-window.addEventListener("touchmove", (e) => { if(dragging) { e.preventDefault(); move(e); } }, {passive: false});
+const dragEnd = () => { isDragging = false; timeline.style.cursor = "grab"; };
+
+timeline.addEventListener("mousedown", dragStart);
+window.addEventListener("mousemove", dragMove);
+window.addEventListener("mouseup", dragEnd);
+timeline.addEventListener("touchstart", dragStart, { passive: false });
+window.addEventListener("touchmove", (e) => { if (isDragging) e.preventDefault(); dragMove(e); }, { passive: false });
+window.addEventListener("touchend", dragEnd);
 
 function limpiar() { location.reload(); }
 function abrirAyuda() { document.getElementById("modalAyuda").style.display = "flex"; }
