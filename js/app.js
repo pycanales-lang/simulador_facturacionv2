@@ -1,145 +1,296 @@
-const REGLAS = {
-    ciclos: { 1: { v: 15, c: 3 }, 7: { v: 21, c: 9 }, 15: { v: 1, c: 17 }, 21: { v: 5, c: 22 } },
-    config: { moneda: "LOCAL", cargo: 12000 }
+/**
+ * SIMULADOR DE FACTURACIÓN TELCO - MOTOR LÓGICO CONSOLIDADO
+ * js/app.js
+ */
+
+const REGLAS_NEGOCIO = {
+    HOME: {
+        ciclos: {
+            1:  { emision: 1,  vence: 15, pago_inicio: 1,  pago_fin: 14, corte: [3, 4] },
+            7:  { emision: 7,  vence: 21, pago_inicio: 7,  pago_fin: 21, corte: [9, 10] },
+            15: { emision: 15, vence: 1,  pago_inicio: 15, pago_fin: 1,  corte: [17, 18] },
+            21: { emision: 21, vence: 5,  pago_inicio: 21, pago_fin: 4,  corte: [22, 23] }
+        },
+        config: {
+            moneda: "LOCAL",
+            cargo_administrativo: 12000
+        }
+    }
 };
 
+// Variables Globales de Estado
 let posActual = 0;
-let fechaInst = null;
-let cicloAct = 1;
+let fechaInstalacionGlobal = null;
+let cicloActual = 0;
+let esCuentaNueva = false;
+let isDragging = false;
+let startX = 0;
+let startPos = 0;
+
 const TRACK_SCALE = 3;
 const SNAP_THRESHOLD = 1.4;
 
+/**
+ * MOTOR DE CICLO: Determina el ciclo según el día de instalación
+ */
+function obtenerCicloAsignado(dia) {
+    if (dia >= 1 && dia <= 6) return 7;
+    if (dia >= 7 && dia <= 14) return 15;
+    if (dia >= 15 && dia <= 20) return 21;
+    return 1;
+}
+
+/**
+ * MOTOR DE SIMULACIÓN: Inicia el proceso y posiciona hitos
+ */
+function simular() {
+    const fStr = document.getElementById("fecha").value;
+    if (!fStr) return alert("Ingrese fecha de instalación");
+
+    fechaInstalacionGlobal = new Date(fStr + 'T00:00:00');
+    const dia = fechaInstalacionGlobal.getDate();
+    cicloActual = obtenerCicloAsignado(dia);
+
+    // Verificar Early Churn (< 4 meses)
+    const hoy = new Date();
+    const mesesDiff = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 + (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
+    esCuentaNueva = mesesDiff <= 4;
+
+    actualizarMeses(false);
+
+    // Posicionamiento porcentual (Base 60 días)
+    const posInst = (dia / 60) * 100;
+    
+    // Lógica de emisión factura 1
+    let posFact = (cicloActual <= dia && cicloActual !== 1) 
+        ? ((30 + cicloActual) / 60) * 100 
+        : (cicloActual === 1 ? 52 : (cicloActual / 60) * 100);
+
+    const reglas = REGLAS_NEGOCIO.HOME.ciclos[cicloActual];
+    
+    // Vencimiento 1
+    const posV1 = posFact + (reglas.vence < cicloActual 
+        ? (reglas.vence + (30 - cicloActual)) / 60 * 100 
+        : (reglas.vence - cicloActual) / 60 * 100);
+    
+    // Corte Parcial
+    const posC1 = posFact + (reglas.corte[0] < cicloActual 
+        ? (reglas.corte[0] + (30 - cicloActual)) / 60 * 100 
+        : (reglas.corte[0] - cicloActual) / 60 * 100);
+
+    // Dibujar en Track
+    setPos("inst", "instLabel", posInst, "I");
+    setPos("fact", "factLabel", posFact, "1");
+    setPos("vence", "venceLabel", posV1, "V");
+    setPos("corte", "corteLabel", posC1, "C");
+
+    // Exoneración bar
+    const exoBar = document.getElementById("exoBar");
+    exoBar.style.left = posInst + "%";
+    exoBar.style.width = (posFact - posInst) + "%";
+    document.getElementById("exoLabel").style.left = (posInst + (posFact - posInst) / 2) + "%";
+
+    document.getElementById("corte").style.display = "flex";
+    document.getElementById("corteLabel").style.display = "block";
+
+    // Resetear a posición de Vencimiento
+    posActual = posV1 - 5;
+    renderTimeline(posActual);
+}
+
+/**
+ * MOTOR TIMELINE: Maneja el desplazamiento del track y el badge de días
+ */
+function renderTimeline(pos) {
+    const track = document.getElementById("timelineTrack");
+    const diaBadge = document.getElementById("diaBadge");
+
+    // Snap a eventos cercanos
+    posActual = aplicarSnap(pos);
+
+    // Mover Track (Playhead fijo al 50%)
+    const offset = (50 - posActual) * TRACK_SCALE;
+    track.style.transform = `translateX(${offset}%)`;
+
+    // Actualizar Badge de Días
+    const diasSimulados = Math.round((posActual / 100) * 60);
+    diaBadge.innerText = `Día ${diasSimulados}`;
+
+    // Sincronizar Pago (P) con Aguja
+    setPos("pay", "payLabel", posActual, "P");
+
+    actualizarDetalle();
+}
+
+/**
+ * MOTOR DRAG: Implementación de arrastre relativo
+ */
+const timeline = document.getElementById("timeline");
+
+const startDrag = (e) => {
+    isDragging = true;
+    startX = e.touches ? e.touches[0].clientX : e.clientX;
+    startPos = posActual;
+};
+
+const doDrag = (e) => {
+    if (!isDragging) return;
+    const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+    const deltaX = currentX - startX;
+    const rect = timeline.getBoundingClientRect();
+    
+    // Sensibilidad ajustada para control Tik-Tik
+    const movimiento = (deltaX / rect.width) * 100 * 0.5;
+    let nuevaPos = startPos - movimiento;
+    
+    renderTimeline(Math.max(0, Math.min(100, nuevaPos)));
+};
+
+const stopDrag = () => { isDragging = false; };
+
+timeline.addEventListener("mousedown", startDrag);
+window.addEventListener("mousemove", doDrag);
+window.addEventListener("mouseup", stopDrag);
+window.addEventListener("touchend", stopDrag);
+
+timeline.addEventListener("touchstart", (e) => { startDrag(e); }, {passive: false});
+window.addEventListener("touchmove", (e) => { if(isDragging) e.preventDefault(); doDrag(e); }, {passive: false});
+
+/**
+ * MOTOR ESTADOS Y FINANCIERO: Evalúa mora y deuda
+ */
+function actualizarDetalle() {
+    if (!fechaInstalacionGlobal) return;
+
+    const config = REGLAS_NEGOCIO.HOME.config;
+    const p = parseFloat(document.getElementById("plan").value) || 0;
+    const a = parseFloat(document.getElementById("anticipo").value) || 0;
+    const s = p - a;
+
+    const posV1 = parseFloat(document.getElementById("vence").style.left);
+    const posC1 = parseFloat(document.getElementById("corte").style.left);
+    const posV2 = parseFloat(document.getElementById("vence2").style.left) || 100;
+
+    let estado = "EN_PLAZO";
+    let color = "var(--success)";
+    
+    // Cascada de estados
+    if (posActual > posV1) {
+        estado = "EN_MORA";
+        color = "var(--warning)";
+        if (esCuentaNueva) document.getElementById("bannerChurn").style.display = "block";
+    } else {
+        document.getElementById("bannerChurn").style.display = "none";
+    }
+
+    if (posActual >= posC1) {
+        estado = "CORTE_PARCIAL";
+        color = "var(--danger)";
+        expandirSegundaFactura(posV1);
+    } else {
+        contraerSegundaFactura();
+    }
+
+    if (posActual >= posV2) {
+        estado = "CORTE_TOTAL";
+        color = "var(--dark-danger)";
+    }
+
+    // Cálculos Monetarios
+    let totalDeuda = (estado === "EN_PLAZO") ? s : (s + p + config.cargo_administrativo);
+    
+    const gestion = {
+        "EN_PLAZO": "Cliente al día. No requiere gestión.",
+        "EN_MORA": "Gestión recomendada: contactar cliente antes del corte.",
+        "CORTE_PARCIAL": "Servicio suspendido. Cliente debe regularizar deuda.",
+        "CORTE_TOTAL": "Servicio cancelado por mora prolongada."
+    };
+
+    document.getElementById("info").innerHTML = `
+        <div class="state-badge" style="background:${color}; color:${estado === 'EN_MORA' ? '#333' : 'white'}">
+            ${estado.replace("_", " ")}
+        </div>
+        <p style="font-size:12px; margin-bottom:10px; opacity:0.9">${gestion[estado]}</p>
+        <span class="total-factura">${config.moneda} ${totalDeuda.toLocaleString()}</span>
+    `;
+
+    // Regla de Oro
+    const fEmi = new Date(fechaInstalacionGlobal);
+    fEmi.setDate(cicloActual);
+    if (cicloActual <= fechaInstalacionGlobal.getDate()) fEmi.setMonth(fEmi.getMonth() + 1);
+    
+    document.getElementById("detalleFacturacion").innerHTML = `
+        <small>Emisión F1: ${fEmi.toLocaleDateString()}</small><br>
+        <small>Saldo F1: ${config.moneda} ${s.toLocaleString()}</small>
+    `;
+}
+
+/**
+ * MOTOR EXPANSIÓN: Maneja eventos del segundo mes
+ */
+function expandirSegundaFactura(posV1) {
+    const pF2 = posV1 + 12;
+    const pV2 = pF2 + 15;
+    const pCT = pV2 + 10;
+
+    setPos("fact2", "fact2Label", pF2, "2");
+    setPos("vence2", "vence2Label", pV2, "V");
+    setPos("corteT", "corteTLabel", pCT, "T");
+
+    ["fact2", "fact2Label", "vence2", "vence2Label", "corteT", "corteTLabel"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = id.includes("Label") ? "block" : "flex";
+    });
+    actualizarMeses(true);
+}
+
+function contraerSegundaFactura() {
+    ["fact2", "fact2Label", "vence2", "vence2Label", "corteT", "corteTLabel"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = "none";
+    });
+    actualizarMeses(false);
+}
+
+/**
+ * FUNCIONES AUXILIARES
+ */
+function setPos(id, lb, pos, txt) {
+    const el = document.getElementById(id);
+    const label = document.getElementById(lb);
+    if (el) {
+        el.style.left = pos + "%";
+        el.innerHTML = txt;
+    }
+    if (label) label.style.left = pos + "%";
+}
+
 function aplicarSnap(pos) {
     const hitos = ["fact", "vence", "corte", "fact2", "vence2", "corteT"];
-    for (let id of hitos) {
-        let el = document.getElementById(id);
-        if (el && el.style.display !== "none" && el.style.left) {
-            let h = parseFloat(el.style.left);
+    for (const id of hitos) {
+        const el = document.getElementById(id);
+        if (el && el.style.display !== "none") {
+            const h = parseFloat(el.style.left) || 0;
             if (Math.abs(pos - h) < SNAP_THRESHOLD) return h;
         }
     }
     return pos;
 }
 
-function render(pos) {
-    const track = document.getElementById("timelineTrack");
-    const joy = document.getElementById("sliderJoy");
-    const diaBadge = document.getElementById("diaBadge");
-
-    track.style.transform = `translateX(${(50 - pos) * TRACK_SCALE}%)`;
-    joy.style.left = `calc(${pos}% - ${pos * 0.4}px)`;
-
-    let diasTranscurridos = Math.round((pos / 100) * 60);
-    diaBadge.innerText = `Día ${diasTranscurridos}`;
-
-    setPos("pay", "payLabel", pos, "P");
-    actualizarInfo(pos);
-}
-
-function simular() {
-    let fVal = document.getElementById("fecha").value;
-    if (!fVal) return alert("Seleccione fecha");
-    fechaInst = new Date(fVal + 'T00:00:00');
-    let dia = fechaInst.getDate();
-
-    if (dia <= 6) cicloAct = 7; 
-    else if (dia <= 14) cicloAct = 15; 
-    else if (dia <= 20) cicloAct = 21; 
-    else cicloAct = 1;
-
-    let pI = (dia / 60) * 100;
-    let pF = (cicloAct <= dia && cicloAct !== 1) ? ((30 + cicloAct) / 60) * 100 : (cicloAct === 1 ? 52 : (cicloAct / 60) * 100);
+function actualizarMeses(tresMeses) {
+    if (!fechaInstalacionGlobal) return;
+    const m = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const f1 = fechaInstalacionGlobal;
+    const f2 = new Date(f1.getFullYear(), f1.getMonth() + 1, 1);
+    const f3 = new Date(f1.getFullYear(), f1.getMonth() + 2, 1);
     
-    let diaV = REGLAS.ciclos[cicloAct].v;
-    let pV = pF + (diaV < cicloAct ? (diaV + (30 - cicloAct)) / 60 * 100 : (diaV - cicloAct) / 60 * 100);
-    
-    let diaC = REGLAS.ciclos[cicloAct].c;
-    let pC = pF + (diaC < cicloAct ? (diaC + (30 - cicloAct)) / 60 * 100 : (diaC - cicloAct) / 60 * 100);
-
-    setPos("inst", "instLabel", pI, "I");
-    setPos("fact", "factLabel", pF, "1");
-    setPos("vence", "venceLabel", pV, "V");
-    setPos("corte", "corteLabel", pC, "C");
-    
-    document.getElementById("corte").style.display = "flex";
-    document.getElementById("corteLabel").style.display = "block";
-    document.getElementById("exoBar").style.left = pI + "%";
-    document.getElementById("exoBar").style.width = (pF - pI) + "%";
-    
-    posActual = pV - 5;
-    render(posActual);
-}
-
-function actualizarInfo(pos) {
-    if (!fechaInst) return;
-    let p = parseFloat(document.getElementById("plan").value) || 0;
-    let s = p - (parseFloat(document.getElementById("anticipo").value) || 0);
-    
-    let vEl = document.getElementById("vence");
-    let cEl = document.getElementById("corte");
-    if(!vEl || !cEl) return;
-
-    let pV = parseFloat(vEl.style.left);
-    let pC = parseFloat(cEl.style.left);
-    let pV2 = parseFloat(document.getElementById("vence2").style.left) || 100;
-
-    let est = "EN PLAZO", col = "var(--success)";
-
-    if (pos > pV) { est = "EN MORA"; col = "var(--warning)"; }
-    if (pos >= pC) { est = "CORTE PARCIAL"; col = "var(--danger)"; expandirF2(pV); } 
-    else { contraerF2(); }
-    
-    if (pos >= pV2) { est = "CORTE TOTAL"; col = "var(--dark-danger)"; }
-
-    let total = (est === "EN PLAZO") ? s : (s + p + REGLAS.config.cargo);
-    document.getElementById("info").innerHTML = `
-        <div class="state-badge" style="background:${col}; color:${est==='EN MORA'?'#333':'white'}">${est}</div>
-        <div class="total-factura">${REGLAS.config.moneda} ${total.toLocaleString()}</div>
+    document.getElementById("meses").innerHTML = `
+        <span>${m[f1.getMonth()]}</span>
+        <span>${m[f2.getMonth()]}</span>
+        ${tresMeses ? `<span>${m[f3.getMonth()]}</span>` : ""}
     `;
 }
 
-function expandirF2(v1Pos) {
-    let pf2 = v1Pos + 12, pv2 = pf2 + 15, pct = pv2 + 10;
-    setPos("fact2", "fact2Label", pf2, "2");
-    setPos("vence2", "vence2Label", pv2, "V");
-    setPos("corteT", "corteTLabel", pct, "T");
-    ["fact2","fact2Label","vence2","vence2Label","corteT","corteTLabel"].forEach(id => {
-        let el = document.getElementById(id);
-        if(el) el.style.display = id.includes("Label") ? "block" : "flex";
-    });
-}
-
-function contraerF2() {
-    ["fact2","fact2Label","vence2","vence2Label","corteT","corteTLabel"].forEach(id => {
-        let el = document.getElementById(id);
-        if(el) el.style.display = "none";
-    });
-}
-
-function setPos(id, lb, pos, txt) {
-    let e = document.getElementById(id), l = document.getElementById(lb);
-    if(e) { e.style.left = pos + "%"; e.innerHTML = txt; }
-    if(l) { l.style.left = pos + "%"; }
-}
-
-const sliderArea = document.getElementById("sliderArea");
-let dragging = false;
-
-const moveJoy = (e) => {
-    if(!dragging) return;
-    let rect = sliderArea.getBoundingClientRect();
-    let x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-    let p = Math.max(0, Math.min(100, (x / rect.width) * 100));
-    posActual = aplicarSnap(p);
-    render(posActual);
-};
-
-sliderArea.addEventListener("mousedown", (e) => { dragging = true; moveJoy(e); });
-window.addEventListener("mouseup", () => dragging = false);
-window.addEventListener("mousemove", moveJoy);
-sliderArea.addEventListener("touchstart", (e) => { dragging = true; moveJoy(e); });
-window.addEventListener("touchend", () => dragging = false);
-window.addEventListener("touchmove", (e) => { if(dragging) { e.preventDefault(); moveJoy(e); } }, {passive: false});
-
 function abrirAyuda() { document.getElementById("modalAyuda").style.display = "flex"; }
 function cerrarAyuda() { document.getElementById("modalAyuda").style.display = "none"; }
+function limpiar() { location.reload(); }
