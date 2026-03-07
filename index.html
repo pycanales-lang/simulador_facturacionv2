@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Facturación Telco - Professional Edition</title>
+    <title>Simulador Telco Pro - Aguja Fija</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -30,40 +30,46 @@
         <div id="meses" class="meses"></div>
 
         <div class="timeline" id="timeline">
-            <div class="line"></div>
-            <div id="exoBar" class="exoneracion-bar"></div>
-            <div id="exoLabel" class="label bottom" style="color:var(--success); font-style:italic">Prorrateo exonerado</div>
-            
-            <div id="inst" class="event install bottom">I</div>
-            <div id="instLabel" class="label bottom">Inst</div>
-            
-            <div id="fact" class="event invoice bottom">1</div>
-            <div id="factLabel" class="label bottom">Factura 1</div>
-            
-            <div id="pay" class="event pay top">P</div>
-            <div id="payLabel" class="label top">Pago</div>
-            
-            <div id="vence" class="event charge top">V</div>
-            <div id="venceLabel" class="label top">Vencimiento</div>
+            <div id="playhead">
+                <div class="playhead-arrow"></div>
+            </div>
 
-            <div id="corte" class="event charge top" style="display:none">C</div>
-            <div id="corteLabel" class="label top" style="display:none">Corte</div>
-            
-            <div id="fact2" class="event invoice bottom" style="display:none">2</div>
-            <div id="fact2Label" class="label bottom" style="display:none">Factura 2</div>
-            
-            <div id="vence2" class="event charge top" style="display:none">V</div>
-            <div id="vence2Label" class="label top" style="display:none">Vencimiento 2</div>
+            <div id="timelineTrack">
+                <div class="line"></div>
+                <div id="exoBar" class="exoneracion-bar"></div>
+                <div id="exoLabel" class="label bottom" style="color:var(--success); font-style:italic">Prorrateo exonerado</div>
+                
+                <div id="inst" class="event install bottom">I</div>
+                <div id="instLabel" class="label bottom">Inst</div>
+                
+                <div id="fact" class="event invoice bottom">1</div>
+                <div id="factLabel" class="label bottom">Factura 1</div>
+                
+                <div id="pay" class="event pay top">P</div>
+                <div id="payLabel" class="label top">Pago</div>
+                
+                <div id="vence" class="event charge top">V</div>
+                <div id="venceLabel" class="label top">Vencimiento</div>
 
-            <div id="corteT" class="event charge-total top" style="display:none">T</div>
-            <div id="corteTLabel" class="label top" style="display:none">Corte Total</div>
+                <div id="corte" class="event charge top" style="display:none">C</div>
+                <div id="corteLabel" class="label top" style="display:none">Corte</div>
+                
+                <div id="fact2" class="event invoice bottom" style="display:none">2</div>
+                <div id="fact2Label" class="label bottom" style="display:none">Factura 2</div>
+                
+                <div id="vence2" class="event charge top" style="display:none">V</div>
+                <div id="vence2Label" class="label top" style="display:none">Vencimiento 2</div>
+
+                <div id="corteT" class="event charge-total top" style="display:none">T</div>
+                <div id="corteTLabel" class="label top" style="display:none">Corte Total</div>
+            </div>
         </div>
 
         <div id="info" class="result"></div>
 
         <div id="bannerChurn" class="churn-banner">
             <h4 style="font-size:13px; color:white">🚨 RIESGO CRÍTICO: Early Churn</h4>
-            <p style="font-size:11px; color:#ffdadd">Cuenta nueva con mora detectada. Gestión inmediata requerida.</p>
+            <p style="font-size:11px; color:#ffdadd">Cuenta nueva con mora. Gestión inmediata.</p>
         </div>
 
         <div id="detalleFacturacion" class="result"></div>
@@ -72,8 +78,11 @@
     <div id="modalAyuda" class="modal">
         <div class="modal-content">
             <div style="text-align:right; font-weight:bold; cursor:pointer" onclick="cerrarAyuda()">CERRAR ✖</div>
-            <p style="padding:20px; text-align:center">Guía del Simulador: Arrastre el punto 'P' para simular el comportamiento de pago del cliente y ver los estados de mora y corte.</p>
-            </div>
+            <img src="assets/imagenes/Diapositiva2.PNG" alt="Ayuda 1">
+            <img src="assets/imagenes/Diapositiva3.PNG" alt="Ayuda 2">
+            <img src="assets/imagenes/Diapositiva4.PNG" alt="Ayuda 3">
+            <img src="assets/imagenes/Diapositiva5.PNG" alt="Ayuda 4">
+        </div>
     </div>
 
     <script src="js/app.js"></script>
