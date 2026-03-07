@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Simulador de Facturación</title>
+
+<link rel="stylesheet" href="css/styles.css">
+
+</head>
+
+
+<body>
+
+<h1>Simulador de Facturación Telco</h1>
+
+<div id="app">
+
+    <div class="panel">
+
+        <label>Fecha de instalación</label>
+        <input type="date" id="fecha">
+
+        <label>Plan</label>
+        <input type="number" id="plan" placeholder="Ej: 120000">
+
+        <label>Anticipo</label>
+        <input type="number" id="anticipo" placeholder="Ej: 20000">
+
+        <button id="btnSimular">
+            Simular
+        </button>
+
+    </div>
+
+
+    <div class="timeline">
+
+        <div class="line"></div>
+
+    </div>
+
+
+    <div id="resultado">
+
+    </div>
+
+</div>
+
+
+<script src="js/app.js"></script>
+
+</body>
+
+</html>
