@@ -1,58 +1,81 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Simulador de Facturación</title>
-
-<link rel="stylesheet" href="css/styles.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Facturación Telco - Professional Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
-
-
 <body>
+    <div class="container">
+        <div class="header">
+            <div class="title">Simulador Facturación</div>
+            <div class="help" onclick="abrirAyuda()">?</div>
+        </div>
 
-<h1>Simulador de Facturación Telco</h1>
+        <div class="card">
+            <label>Fecha instalación</label>
+            <input type="date" id="fecha">
+            <label>Valor plan</label>
+            <input type="number" id="plan" placeholder="0">
+            <label>Anticipo</label>
+            <input type="number" id="anticipo" placeholder="0">
+            <div class="botones">
+                <button onclick="simular()">Simular</button>
+                <button class="btn-clear" onclick="limpiar()">Limpiar</button>
+            </div>
+        </div>
 
-<div id="app">
+        <div id="meses" class="meses"></div>
 
-    <div class="panel">
+        <div class="timeline" id="timeline">
+            <div class="line"></div>
+            <div id="exoBar" class="exoneracion-bar"></div>
+            <div id="exoLabel" class="label bottom" style="color:var(--success); font-style:italic">Prorrateo exonerado</div>
+            
+            <div id="inst" class="event install bottom">I</div>
+            <div id="instLabel" class="label bottom">Inst</div>
+            
+            <div id="fact" class="event invoice bottom">1</div>
+            <div id="factLabel" class="label bottom">Factura 1</div>
+            
+            <div id="pay" class="event pay top">P</div>
+            <div id="payLabel" class="label top">Pago</div>
+            
+            <div id="vence" class="event charge top">V</div>
+            <div id="venceLabel" class="label top">Vencimiento</div>
 
-        <label>Fecha de instalación</label>
-        <input type="date" id="fecha">
+            <div id="corte" class="event charge top" style="display:none">C</div>
+            <div id="corteLabel" class="label top" style="display:none">Corte</div>
+            
+            <div id="fact2" class="event invoice bottom" style="display:none">2</div>
+            <div id="fact2Label" class="label bottom" style="display:none">Factura 2</div>
+            
+            <div id="vence2" class="event charge top" style="display:none">V</div>
+            <div id="vence2Label" class="label top" style="display:none">Vencimiento 2</div>
 
-        <label>Plan</label>
-        <input type="number" id="plan" placeholder="Ej: 120000">
+            <div id="corteT" class="event charge-total top" style="display:none">T</div>
+            <div id="corteTLabel" class="label top" style="display:none">Corte Total</div>
+        </div>
 
-        <label>Anticipo</label>
-        <input type="number" id="anticipo" placeholder="Ej: 20000">
+        <div id="info" class="result"></div>
 
-        <button id="btnSimular">
-            Simular
-        </button>
+        <div id="bannerChurn" class="churn-banner">
+            <h4 style="font-size:13px; color:white">🚨 RIESGO CRÍTICO: Early Churn</h4>
+            <p style="font-size:11px; color:#ffdadd">Cuenta nueva con mora detectada. Gestión inmediata requerida.</p>
+        </div>
 
+        <div id="detalleFacturacion" class="result"></div>
     </div>
 
-
-    <div class="timeline">
-
-        <div class="line"></div>
-
+    <div id="modalAyuda" class="modal">
+        <div class="modal-content">
+            <div style="text-align:right; font-weight:bold; cursor:pointer" onclick="cerrarAyuda()">CERRAR ✖</div>
+            <p style="padding:20px; text-align:center">Guía del Simulador: Arrastre el punto 'P' para simular el comportamiento de pago del cliente y ver los estados de mora y corte.</p>
+            </div>
     </div>
 
-
-    <div id="resultado">
-
-    </div>
-
-</div>
-
-
-<script src="js/app.js"></script>
-
+    <script src="js/app.js"></script>
 </body>
-
 </html>
