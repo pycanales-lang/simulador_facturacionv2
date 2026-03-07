@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Telco Pro - Console Edition</title>
+    <title>Simulador Telco Pro - Fix Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -45,16 +45,20 @@
                 <div id="payLabel" class="label top">Pago</div>
                 <div id="vence" class="event charge top">V</div>
                 <div id="venceLabel" class="label top">Vence</div>
-                <div id="corte" class="event charge top" style="display:none">C</div>
-                <div id="corteLabel" class="label top" style="display:none">Corte</div>
+                <div id="corte" class="event charge top">C</div>
+                <div id="corteLabel" class="label top">Corte</div>
+
                 <div id="fact2" class="event invoice bottom" style="display:none">2</div>
+                <div id="fact2Label" class="label bottom" style="display:none">F2</div>
                 <div id="vence2" class="event charge top" style="display:none">V</div>
+                <div id="vence2Label" class="label top" style="display:none">Vence 2</div>
                 <div id="corteT" class="event charge-total top" style="display:none">T</div>
+                <div id="corteTLabel" class="label top" style="display:none">Corte Total</div>
             </div>
         </div>
 
         <div class="control-panel">
-            <label>DESLIZA PARA NAVEGAR EN EL TIEMPO</label>
+            <label>DESLIZA PARA NAVEGAR</label>
             <div class="slider-container" id="sliderArea">
                 <div id="sliderJoy"></div>
             </div>
