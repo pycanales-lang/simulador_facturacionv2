@@ -1,4 +1,4 @@
-# 📡 Simulador de Facturación Telco - Professional Edition
+# 📡 Simulador de Facturación - Professional Edition
 
 ![Versión](https://img.shields.io/badge/version-2.5.0-blue)
 ![Licencia](https://img.shields.io/badge/license-MIT-green)
