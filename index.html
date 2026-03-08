@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Simulador Facturación Pro - Siebel 2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Facturación - Siebel 2026</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -15,11 +15,11 @@
         </div>
 
         <div class="card">
-            <label for="fecha">Fecha instalación</label>
+            <label>Fecha instalación</label>
             <input type="date" id="fecha">
-            <label for="plan">Valor plan</label>
+            <label>Valor plan</label>
             <input type="number" id="plan" placeholder="0">
-            <label for="anticipo">Anticipo</label>
+            <label>Anticipo</label>
             <input type="number" id="anticipo" placeholder="0">
             <div class="botones">
                 <button onclick="simular()">Simular</button>
@@ -29,82 +29,42 @@
 
         <div id="meses" class="meses"></div>
 
-        <div class="ux-board" id="uxBoard">
-            <div class="slider-wrapper">
-                <label>CONTROL DE DÍAS (DÍA <span id="ux-day">0</span>)</label>
-
-                <div class="ux-timeline-track">
-                    <div class="ux-event" id="ux-inst">
-                        <span class="ux-icon" style="background:var(--success)">🏠</span>
-                        <span class="ux-label">Inst</span>
-                    </div>
-                    <div class="ux-event" id="ux-fact1">
-                        <span class="ux-icon">🧾</span>
-                        <span class="ux-label">F1</span>
-                    </div>
-                    <div class="ux-event ux-warning" id="ux-vence">
-                        <span class="ux-icon" style="background:var(--warning); color:black">📅</span>
-                        <span class="ux-label">Venc</span>
-                    </div>
-                    <div class="ux-event ux-danger" id="ux-corte">
-                        <span class="ux-icon" style="background:var(--danger)">🚫</span>
-                        <span class="ux-label">Corte</span>
-                    </div>
-                    <div class="ux-event" id="ux-fact2">
-                        <span class="ux-icon">🧾</span>
-                        <span class="ux-label">F2</span>
-                    </div>
-                    <div class="ux-event ux-warning" id="ux-vence2">
-                        <span class="ux-icon" style="background:var(--warning); color:black">📅</span>
-                        <span class="ux-label">Venc 2</span>
-                    </div>
-
-                    <div class="ux-pago-cursor" id="ux-pago">
-                        <span class="ux-pago-icon">💰</span>
-                        <span class="ux-pago-label">Pago</span>
-                    </div>
-
-                    <input type="range" id="timeSlider" class="absolute-slider" min="0" max="100" value="0" step="0.1">
-                </div>
-            </div>
-
-            <div class="ux-status-panel">
-                <div id="infoUX"></div>
-                <div id="ux-message" class="ux-dynamic-desc"></div>
-            </div>
-
-            <div id="bannerChurnUX" class="churn-banner" style="display:none;">
-                <h4 style="font-size:13px; color:white">🚨 RIESGO CRÍTICO: Early Churn</h4>
-                <p style="font-size:11px; color:#ffdadd">Cuenta nueva con pago atrasado.</p>
-            </div>
-
-            <div class="ux-dates-board">
-                <div id="detalleFechasUX"></div>
-            </div>
+        <div class="timeline" id="timeline">
+            <div class="line"></div>
+            <div id="inst" class="event install bottom">I</div>
+            <div id="instLabel" class="label bottom">Inst</div>
+            <div id="fact" class="event invoice bottom">1</div>
+            <div id="factLabel" class="label bottom">Factura</div>
+            <div id="pay" class="event pay top">P</div>
+            <div id="payLabel" class="label top">Pago</div>
+            <div id="vence" class="event charge top">V</div>
+            <div id="venceLabel" class="label top">Vence</div>
+            
+            <div id="fact2" class="event invoice bottom" style="display:none">2</div>
+            <div id="fact2Label" class="label bottom" style="display:none">Factura 2</div>
+            <div id="vence2" class="event charge top" style="display:none">V</div>
+            <div id="vence2Label" class="label top" style="display:none">Vence</div>
         </div>
 
-        <div style="display:none; visibility: hidden; pointer-events: none;">
-            <div class="timeline" id="timeline">
-                <div id="timelineTrack">
-                    <div id="inst"></div><div id="fact"></div><div id="vence"></div><div id="corte"></div>
-                    <div id="fact2"></div><div id="vence2"></div><div id="corteT"></div>
-                    <div id="pay"></div><div id="exoBar"></div>
-                    <div id="playhead"></div><div id="diaBadge"></div>
-                </div>
-            </div>
-            <div id="info"></div>
-            <div id="detalleFacturacion"></div>
-            <div id="bannerChurn"></div>
+        <div id="info" class="result"></div>
+
+        <div id="bannerChurn" class="churn-banner">
+            <h4 style="font-size:13px; color:white">🚨 RIESGO CRÍTICO: Early Churn</h4>
+            <p style="font-size:11px; color:#ffdadd">Cuenta nueva con pago atrasado. ¡Gestión inmediata!</p>
         </div>
+
+        <div id="detalleFacturacion" class="result"></div>
     </div>
 
     <div id="modalAyuda" class="modal">
         <div class="modal-content">
-            <div style="text-align:right; font-weight:bold; cursor:pointer; padding:10px;" onclick="cerrarAyuda()">CERRAR ✖</div>
-            <img src="assets/imagenes/Diapositiva2.PNG" alt="Ayuda 2">
-            <img src="assets/imagenes/Diapositiva3.PNG" alt="Ayuda 3">
-            <img src="assets/imagenes/Diapositiva4.PNG" alt="Ayuda 4">
-            <img src="assets/imagenes/Diapositiva5.PNG" alt="Ayuda 5">
+            <div style="text-align:right; font-weight:bold; cursor:pointer" onclick="cerrarAyuda()">CERRAR ✖</div>
+            <img src="assets/Imagenes/Diapositiva2.PNG">
+            <img src="assets/Imagenes/Diapositiva3.PNG">
+            <img src="assets/Imagenes/Diapositiva4.PNG">
+            <img src="assets/Imagenes/Diapositiva5.PNG">
+            <img src="assets/Imagenes/Diapositiva6.PNG">
+            <img src="assets/Imagenes/Diapositiva7.PNG">
         </div>
     </div>
 
