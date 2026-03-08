@@ -165,7 +165,7 @@ button {
 
 #timelineTrack { 
     position: absolute; 
-    width: 200%; 
+    width: 100%; 
     height: 100%; 
     left: 0; 
     transition: transform 0.1s linear; 
@@ -293,3 +293,4 @@ button {
     border-radius: 8px; 
     margin-bottom: 10px; 
 }
+
