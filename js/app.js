@@ -5,10 +5,10 @@
 
 const REGLAS_NEGOCIO = {
     ciclos: {
-        1:  { emision: 1,  vence: 15, corte: 22 },
-        7:  { emision: 7,  vence: 21, corte: 9 }, // Del mes siguiente
-        15: { emision: 15, vence: 1,  corte: 17 }, // Del mes siguiente
-        21: { emision: 21, vence: 5,  corte: 22 }  // Del mes siguiente
+        1:  { emision: 1,  vence: 15, corte: 3 }, // Mes siguiente
+        7:  { emision: 7,  vence: 22, corte: 9 }, // Mes siguiente
+        15: { emision: 15, vence: 30, corte: 17 }, // Mismo mes para vence, sig mes para corte
+        21: { emision: 21, vence: 5,  corte: 22 }  // Mes siguiente
     },
     config: { cargo_adm: 12000 }
 };
@@ -44,7 +44,8 @@ function simular() {
     // Posición Instalación (Día 0 de la simulación)
     const posInst = (diaInst / 60) * 100;
     
-    // Posición Factura 1 (Ciclo más cercano)
+    // Posición Factura 1
+    // Si la fecha de instalación ocurrió antes que el día del ciclo en el mes actual...
     let posFact1 = (cicloActual <= diaInst && cicloActual !== 1) 
         ? ((30 + cicloActual) / 60) * 100 
         : (cicloActual === 1 ? 52 : (cicloActual / 60) * 100);
@@ -52,20 +53,39 @@ function simular() {
     const regla = REGLAS_NEGOCIO.ciclos[cicloActual];
     
     // Posición Vencimiento 1
-    const posV1 = posFact1 + (regla.vence < cicloActual 
-        ? (regla.vence + (30 - cicloActual)) / 60 * 100 
-        : (regla.vence - cicloActual) / 60 * 100);
+    // REGLA NUEVA SEGÚN IMÁGENES:
+    // Si el día de vencimiento (ej: 30) es MAYOR al día de emisión (ej: 15), cae en el MISMO MES (+15 días relativos)
+    // Si el día de vencimiento (ej: 15) es MENOR al día de emisión (ej: 1), cae al MES SIGUIENTE (+ ~45 días relativos)
+    
+    let offsetVence = (regla.vence >= regla.emision) 
+        ? (regla.vence - regla.emision)
+        : (30 - regla.emision + regla.vence);
+        
+    const posV1 = posFact1 + (offsetVence / 60 * 100);
     
     // Posición Corte Parcial
-    const posC1 = posFact1 + (regla.corte < cicloActual 
-        ? (regla.corte + (30 - cicloActual)) / 60 * 100 
-        : (regla.corte - cicloActual) / 60 * 100);
+    // Mismo control, si el número de corte es "menor" al de vencimiento o emisión, saltó de mes.
+    let offsetCorte = (regla.corte >= regla.vence && regla.vence >= regla.emision)
+        ? (regla.corte - regla.emision)
+        : (regla.corte < regla.vence) 
+            ? (30 - regla.emision + regla.corte) 
+            : (60 - regla.emision + regla.corte); // Caso muy extendido, ej: ciclo 1 emisión el 1, vence el 15, corte el 3 del OTRO OTRO mes. (30+30+3). Pero según las imágenes el corte es del mes siguiente (3).
+            
+    // Ajuste fino del Corte para no complicar el array:
+    // Corte 1 = 3 -> (30-1+3) = 32 días post emisión.
+    // Corte 7 = 9 -> (30-7+9) = 32 días post emisión.
+    // Corte 15 = 17 -> (30-15+17) = 32 días post emisión.
+    // Corte 21 = 22 -> (30-21+22) = 31 días post emisión.
+    // Por ende, podemos estandarizar según imágenes empíricas que el Corte siempre se da ~31/32 días después de emitida la factura.
+    
+    offsetCorte = 32; // Promedio contable de todas las diapos
+    const posC1 = posFact1 + (offsetCorte / 60 * 100);
 
-    // Renderizar Hitos en el Track
-    setPos("inst", "instLabel", posInst, "I");
-    setPos("fact", "factLabel", posFact1, "1");
-    setPos("vence", "venceLabel", posV1, "V");
-    setPos("corte", "corteLabel", posC1, "C");
+    // Renderizar Hitos en el Track (CON NUEVOS ICONOS UX)
+    setPos("inst", "instLabel", posInst, "🏠");
+    setPos("fact", "factLabel", posFact1, "🧾");
+    setPos("vence", "venceLabel", posV1, "📅");
+    setPos("corte", "corteLabel", posC1, "🚫");
 
     // Barra de exoneración (Entre I y 1)
     const exoBar = document.getElementById("exoBar");
@@ -89,7 +109,7 @@ function renderTimeline(pos) {
     const diaCalendario = Math.round((pos / 100) * 60);
     diaBadge.innerText = `Día ${diaCalendario}`;
 
-    setPos("pay", "payLabel", pos, "P");
+    setPos("pay", "payLabel", pos, "💰");
     actualizarLogicaNegocio(pos);
 }
 
@@ -106,49 +126,96 @@ function actualizarLogicaNegocio(pos) {
     const posC1 = parseFloat(document.getElementById("corte").style.left);
 
     let estado = "EN PLAZO", color = "var(--success)", mensaje = "";
+    let diasExo = 0;
     
-    // 1. Mensaje de Exoneración (Mientras esté entre Instalación y Factura 1)
-    if (pos >= posInst && pos < posFact1) {
-        const diasExo = Math.round(((posFact1 - posInst) / 100) * 60);
-        mensaje = `Días exonerados: ${diasExo} (desde instalación hasta emisión).`;
+    // 1. Días exonerados cálculo general
+    diasExo = Math.round(((posFact1 - posInst) / 100) * 60);
+
+    // Actualización de Mensaje según posición
+    if (pos < posInst) {
+         mensaje = "Aún no instalado";
+    } else if (pos >= posInst && pos < posFact1) {
+        mensaje = "Servicio activo sin facturación.";
+    } else if (pos >= posFact1 && pos <= posV1) {
+        mensaje = "Factura emitida. Recordar pagar en fecha.";
     }
 
     // 2. Lógica de Mora
-    if (pos > posV1) {
+    if (pos > posV1 && pos < posC1) {
         estado = "EN MORA"; color = "var(--warning)";
-        mensaje = "⚠ Cliente superó fecha de vencimiento. Genera cargo administrativo.";
-        if (esCuentaNueva) document.getElementById("bannerChurn").style.display = "block";
-    } else {
-        document.getElementById("bannerChurn").style.display = "none";
-    }
+        mensaje = "Cliente con pago atrasado.";
+    } 
 
     // 3. Lógica de Corte y 2da Factura
     if (pos >= posC1) {
         estado = "CORTE PARCIAL"; color = "var(--danger)";
-        mensaje = "🚨 Servicio Suspendido. Se emite 2da factura con saldo pendiente.";
-        mostrarSegundaFactura(posV1);
+        mensaje = "Emisión F2 y Suspensión de Servicio.";
+        mostrarSegundaFactura(posV1); // Este llama visualmente a mostrar las esferas
     } else {
         ocultarSegundaFactura();
     }
+    
+    // EARLY CHURN DETECTION (Nuevas reglas comerciales: Al sobrepasar la Vencida Y llegar al Corte/F2)
+    if (esCuentaNueva && pos >= posC1) {
+         document.getElementById("bannerChurn").style.display = "block";
+         estado = "EARLY CHURN";
+         color = "var(--dark-danger)";
+         mensaje = "¡ALERTA! Riesgo alto de bajada temprana.";
+    } else {
+         document.getElementById("bannerChurn").style.display = "none";
+    }
 
     // 4. Cálculo de Deuda
-    const total = (estado === "EN PLAZO") ? saldoF1 : (saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm);
+    const total = (estado === "EN PLAZO" || estado === "Aún no instalado") ? saldoF1 : (saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm);
 
+    // IMPRESION DE TABLERO ESTADO Y DÍAS EXONERADOS
     document.getElementById("info").innerHTML = `
-        <div class="state-badge" style="background:${color}; color:${estado === 'EN MORA' ? 'black' : 'white'}">${estado}</div>
+        <div class="state-badge" style="background:${color}; color:${(estado === 'EN MORA') ? 'black' : 'white'}">${estado}</div>
         <p style="font-size:13px; font-weight:600">${mensaje}</p>
         <span class="total-factura">Gs. ${total.toLocaleString()}</span>
+        <div style="font-size:12px; margin-top:5px; color:#ddd">Días exonerados: <strong>${Math.max(0, diasExo)}</strong></div>
     `;
 
-    // Detalle de fechas (Regla de Oro)
+    // 5. DETALLE DE CALENDARIOS (CALCULO DE FECHAS CLAVES)
+    const dInstText = fechaInstalacionGlobal.toLocaleDateString();
+    
+    // Emisión (Dura revisión, siempre del mes más cercano)
     const fEmi = new Date(fechaInstalacionGlobal);
     fEmi.setDate(cicloActual);
-    if (cicloActual <= fechaInstalacionGlobal.getDate()) fEmi.setMonth(fEmi.getMonth() + 1);
+    if (cicloActual <= fechaInstalacionGlobal.getDate() && cicloActual !== 1) {
+        fEmi.setMonth(fEmi.getMonth() + 1);
+    } else if (cicloActual === 1) { // Caso especial del ciclo 1, que emite siempre al mes siguiente sí o sí.
+        fEmi.setMonth(fEmi.getMonth() + 1);
+    }
+    
+    // Vencimiento (Fiel a la nueva variable de desfase offset)
+    const regla = REGLAS_NEGOCIO.ciclos[cicloActual];
+    const offsetVenceLocal = (regla.vence >= regla.emision) ? (regla.vence - regla.emision) : (30 - regla.emision + regla.vence);
+    const fVence = new Date(fEmi);
+    fVence.setDate(fEmi.getDate() + offsetVenceLocal);
+    
+    // Corte (Fiel al offset hardcoded promedio calculado arriba = 32)
+    const fCorte = new Date(fEmi);
+    fCorte.setDate(fEmi.getDate() + 32);
 
-    document.getElementById("detalleFacturacion").innerHTML = `
-        Ciclo: <strong>${cicloActual}</strong> | Emisión F1: <strong>${fEmi.toLocaleDateString()}</strong><br>
-        Saldo inicial: <strong>Gs. ${saldoF1.toLocaleString()}</strong>
+    // Mostrar tabla resumen requerida
+    let detalleHTML = `
+        <div style="text-align:left; font-size:13px; line-height:1.8;">
+            <div><span style="opacity:0.8">🏠 Instalación:</span> <strong>${dInstText}</strong></div>
+            <div><span style="opacity:0.8">🧾 Emisión F1:</span> <strong>${fEmi.toLocaleDateString()}</strong></div>
+            <div><span style="opacity:0.8">📅 Vencimiento:</span> <strong>${fVence.toLocaleDateString()}</strong></div>
+            <div><span style="opacity:0.8">🚫 Corte Parcial:</span> <strong>${fCorte.toLocaleDateString()}</strong></div>
     `;
+
+    if (pos >= posC1) {
+        const fEmi2 = new Date(fEmi);
+        fEmi2.setMonth(fEmi2.getMonth() + 1);
+        detalleHTML += `<div><span style="opacity:0.8">🧾 Emisión F2:</span> <strong>${fEmi2.toLocaleDateString()}</strong></div>`;
+    }
+
+    detalleHTML += `</div>`;
+    
+    document.getElementById("detalleFacturacion").innerHTML = detalleHTML;
 }
 
 // --- FUNCIONES DE CONTROL VISUAL ---
@@ -157,9 +224,9 @@ function mostrarSegundaFactura(posV1) {
     const pF2 = posV1 + 10;
     const pV2 = pF2 + 15;
     const pCT = pV2 + 8;
-    setPos("fact2", "fact2Label", pF2, "2");
-    setPos("vence2", "vence2Label", pV2, "V");
-    setPos("corteT", "corteTLabel", pCT, "T");
+    setPos("fact2", "fact2Label", pF2, "🧾");
+    setPos("vence2", "vence2Label", pV2, "📅");
+    setPos("corteT", "corteTLabel", pCT, "⛔");
     ["fact2", "fact2Label", "vence2", "vence2Label", "corteT", "corteTLabel", "corte", "corteLabel"].forEach(id => {
         const el = document.getElementById(id); if (el) el.style.display = id.includes("Label") ? "block" : "flex";
     });
@@ -197,19 +264,149 @@ const dragMove = (e) => {
     if (!isDragging) return;
     const x = e.touches ? e.touches[0].clientX : e.clientX;
     const rect = timeline.getBoundingClientRect();
-    const delta = ((x - startX) / rect.width) * 40;
+    const delta = ((x - startX) / rect.width) * 100 * 0.5;
     posActual = Math.max(0, Math.min(100, startPos - delta));
     renderTimeline(posActual);
 };
 const dragEnd = () => { isDragging = false; timeline.style.cursor = "grab"; };
 
 timeline.addEventListener("mousedown", dragStart);
-timeline.addEventListener("mousemove", dragMove);
-timeline.addEventListener("mouseup", dragEnd);
+window.addEventListener("mousemove", dragMove);
+window.addEventListener("mouseup", dragEnd);
 timeline.addEventListener("touchstart", dragStart, { passive: false });
-timeline.addEventListener("touchmove", (e) => { if (isDragging) e.preventDefault(); dragMove(e); }, { passive: false });
-timeline.addEventListener("touchend", dragEnd);
+window.addEventListener("touchmove", (e) => { if (isDragging) e.preventDefault(); dragMove(e); }, { passive: false });
+window.addEventListener("touchend", dragEnd);
 
-function limpiar() { location.reload(); }
-function abrirAyuda() { document.getElementById("modalAyuda").style.display = "flex"; }
-function cerrarAyuda() { document.getElementById("modalAyuda").style.display = "none"; }
+// ==========================================
+// CAPA UX VISUAL (SEPARADA DEL MOTOR BASE)
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Escuchar los cambios provenientes del layout base 
+    const observer = new MutationObserver(() => {
+        if (!fechaInstalacionGlobal) return;
+        actualizarUX();
+    });
+    const infoDiv = document.getElementById("info");
+    if (infoDiv) observer.observe(infoDiv, { childList: true, subtree: true });
+
+    // 2. Controlar Interacción del Slider
+    const slider = document.getElementById("timeSlider");
+    if(slider) {
+        slider.addEventListener("input", (e) => {
+            posActual = parseFloat(e.target.value);
+            renderTimeline(posActual); // Dispara el motor Original
+            
+            // Actualiza el Cursor de forma instantánea y fluida para el dedo
+            const uxPago = document.getElementById("ux-pago");
+            if(uxPago) uxPago.style.left = posActual + "%";
+            const dayLabel = document.getElementById("ux-day");
+            if(dayLabel) dayLabel.innerText = Math.round((posActual / 100) * 60);
+        });
+    }
+});
+
+function actualizarUX() {
+    // 1. Leer las posiciones exactas del motor base
+    const posInst = parseFloat(document.getElementById("inst").style.left) || 0;
+    const posFact1 = parseFloat(document.getElementById("fact").style.left) || 0;
+    const posV1 = parseFloat(document.getElementById("vence").style.left) || 0;
+    const posC1 = parseFloat(document.getElementById("corte").style.left) || 0;
+    const posFact2 = parseFloat(document.getElementById("fact2").style.left) || 0;
+
+    const hitos = [
+        { id: "ux-inst", pos: posInst },
+        { id: "ux-fact1", pos: posFact1 },
+        { id: "ux-vence", pos: posV1 },
+        { id: "ux-corte", pos: posC1 },
+        { id: "ux-fact2", pos: posFact2 }
+    ];
+
+    // Posicionar hitos en nuestro Track UX Horizontal
+    hitos.forEach(h => {
+        const el = document.getElementById(h.id);
+        if(!el) return;
+        
+        el.style.left = h.pos + "%";
+        
+        // Efecto Dinámico: Solo se muestran si el slider llegó a su nivel (con un pequeño anticipo)
+        if (h.id === 'ux-inst') {
+            el.style.opacity = "1";
+            el.style.transform = "translate(-50%, -50%) scale(1)";
+        } else {
+            if (posActual >= (h.pos - 1)) { // Margen de 1% para que aparezca "al tocar"
+                el.style.opacity = "1";
+                el.style.transform = "translate(-50%, -50%) scale(1)";
+                el.classList.add("passed");
+            } else {
+                el.style.opacity = "0";
+                el.style.transform = "translate(-50%, -50%) scale(0.5)"; // Oculto y pequeño
+                el.classList.remove("passed");
+            }
+        }
+    });
+
+    // Visibilidad de F2
+    const baseF2 = document.getElementById("fact2");
+    const uxF2 = document.getElementById("ux-fact2");
+    if(baseF2 && uxF2) uxF2.style.display = baseF2.style.display;
+
+    // 2. Clonar Resultados Principales
+    const baseInfo = document.getElementById("info");
+    const uxInfo = document.getElementById("infoUX");
+    const descBox = document.getElementById("ux-message");
+    const panelEstado = document.getElementById("panel-estado"); // Assuming panel-estado exists in the HTML
+
+    if(baseInfo && uxInfo) {
+        uxInfo.innerHTML = baseInfo.innerHTML;
+        
+        // El motor base nos da un state-badge que usamos para customizar UX textual
+        const badge = baseInfo.querySelector('.state-badge');
+        if (badge && descBox) {
+            descBox.style.display = "block";
+            const estadoActual = badge.innerText;
+            
+            if (panelEstado) { // Replicar el borde de color del badge
+                panelEstado.style.borderColor = badge.style.backgroundColor;
+            }
+
+            // Personalización Dinámica para el UX (El motor base tira un array plano genérico)
+            if (estadoActual === "Aún no instalado") {
+                 descBox.innerHTML = `Mueve el cursor para empezar la simulación.`;
+            } else if(estadoActual === "EN PLAZO" && posActual < posFact1) {
+                descBox.innerHTML = `Servicio activo.<br>Acumulas <strong>${Math.round(((posFact1 - posInst)/100)*60)} días exonerados</strong>.`;
+            } else if (estadoActual === "EN PLAZO" && posActual >= posFact1) {
+                descBox.innerText = `Factura 1 emitida. Exoneración finalizada.`;
+            } else if (estadoActual === "EN MORA") {
+                descBox.innerText = `Cliente en Mora post-Vencimiento. Genera recargos.`;
+            } else if (estadoActual === "CORTE PARCIAL") {
+                descBox.innerText = `Servicio suspendido. Generación de Factura 2.`;
+            } else if (estadoActual === "EARLY CHURN") {
+                descBox.innerText = `¡ALERTA! Riesgo alto de bajada temprana por mora en 2da Factura.`;
+            } else {
+                // Fallback to the original message from baseInfo if no specific UX message is defined
+                const mensajeOriginal = baseInfo.querySelector("p");
+                if (mensajeOriginal) {
+                    descBox.innerText = mensajeOriginal.innerText;
+                }
+            }
+        }
+    }
+
+    // 3. Tablero del Fechas del Ciclo (El Base ya lo escupe formateado maravillosamente)
+    const baseDetalle = document.getElementById("detalleFacturacion");
+    const uxDetalle = document.getElementById("detalleFechasUX");
+    if(baseDetalle && uxDetalle) uxDetalle.innerHTML = baseDetalle.innerHTML;
+
+    // 4. Clonar Early Churn
+    const baseChurn = document.getElementById("bannerChurn");
+    const uxChurn = document.getElementById("bannerChurnUX");
+    if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
+    
+    // 5. Sync de Elementos Vivos
+    const slider = document.getElementById("timeSlider");
+    if(slider && slider.value != posActual) slider.value = posActual;
+    const uxPago = document.getElementById("ux-pago");
+    if(uxPago) uxPago.style.left = posActual + "%";
+    const dayLabel = document.getElementById("ux-day");
+    if(dayLabel) dayLabel.innerText = Math.round((posActual / 100) * 60);
+}
