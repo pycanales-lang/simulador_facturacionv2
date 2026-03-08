@@ -6,7 +6,7 @@
     --success: #06D6A0; 
     --dark-danger: #8B0000;
 }
-
+ 
 * { 
     box-sizing: border-box; 
     margin: 0; 
@@ -292,3 +292,4 @@ button {
     margin-top: 5px;
     color: #fff;
 }
+
