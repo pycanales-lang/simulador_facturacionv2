@@ -1,392 +1,190 @@
-:root { 
-    --tigo: #0033A0; 
-    --tigo2: #0057D9; 
-    --danger: #EF476F; 
-    --warning: #FFD166; 
-    --success: #06D6A0; 
-    --dark-danger: #8B0000;
+/**
+ * SIMULADOR TELCO PRO - MOTOR DINÁMICO SIEBEL 2026
+ * Sincronización total y Fluidez Móvil
+ */
+
+const REGLAS_NEGOCIO = {
+    ciclos: {
+        1:  { emision: 1,  vence: 15, corte: 3 },
+        7:  { emision: 7,  vence: 22, corte: 9 },
+        15: { emision: 15, vence: 30, corte: 17 },
+        21: { emision: 21, vence: 5,  corte: 22 }
+    },
+    config: { cargo_adm: 12000 }
+};
+
+let posActual = 0, fechaInstalacionGlobal = null, cicloActual = 0, esCuentaNueva = false;
+let isDragging = false, startX = 0, startPos = 0;
+
+const TRACK_SCALE = 3; 
+
+function obtenerCicloAsignado(dia) {
+    if (dia <= 6) return 7; 
+    if (dia <= 14) return 15; 
+    if (dia <= 20) return 21; 
+    return 1;
 }
 
-* { 
-    box-sizing: border-box; 
-    margin: 0; 
-    padding: 0; 
+function setPos(idEvent, idLabel, pos, texto) {
+    const ev = document.getElementById(idEvent);
+    const lb = document.getElementById(idLabel);
+    if (ev) {
+        ev.style.left = pos + "%";
+        ev.style.display = "flex";
+        if (texto) ev.innerText = texto;
+    }
+    if (lb) {
+        lb.style.left = pos + "%";
+        lb.style.display = "block";
+    }
 }
 
-body { 
-    font-family: 'Poppins', sans-serif; 
-    background: linear-gradient(135deg, var(--tigo), var(--tigo2)); 
-    color: white; 
-    padding: 20px; 
-    min-height: 100vh; 
-    overflow-x: hidden; 
+function simular() {
+    const fStr = document.getElementById("fecha").value;
+    if (!fStr) return alert("Seleccione fecha de instalación");
+
+    const partes = fStr.split('-');
+    fechaInstalacionGlobal = new Date(partes[0], partes[1] - 1, partes[2]);
+    
+    const diaInst = fechaInstalacionGlobal.getDate();
+    cicloActual = obtenerCicloAsignado(diaInst);
+
+    const hoy = new Date();
+    const diffMeses = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 + (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
+    esCuentaNueva = diffMeses <= 4;
+
+    // --- CÁLCULO DE POSICIONES ---
+    const posInst = (diaInst / 60) * 100;
+    
+    let diaFact1 = (cicloActual <= diaInst && cicloActual !== 1) ? (30 + cicloActual) : (cicloActual === 1 ? 31 : cicloActual);
+    const posFact1 = (diaFact1 / 60) * 100;
+
+    const regla = REGLAS_NEGOCIO.ciclos[cicloActual];
+    let offsetVence = (regla.vence >= regla.emision) ? (regla.vence - regla.emision) : (30 - regla.emision + regla.vence);
+    const posV1 = posFact1 + (offsetVence / 60 * 100);
+    const posC1 = posFact1 + (32 / 60 * 100);
+
+    // Renderizar Hitos
+    setPos("inst", "instLabel", posInst, "🏠");
+    setPos("fact", "factLabel", posFact1, "🧾");
+    setPos("vence", "venceLabel", posV1, "📅");
+    setPos("corte", "corteLabel", posC1, "🚫");
+
+    // Sincronizar Barra Exoneración
+    const exoBar = document.getElementById("exoBar");
+    const exoLabel = document.getElementById("exoLabel");
+    if(exoBar) {
+        exoBar.style.left = posInst + "%";
+        exoBar.style.width = (posFact1 - posInst) + "%";
+        exoBar.style.display = "block";
+    }
+    if(exoLabel) {
+        exoLabel.style.left = (posInst + (posFact1 - posInst) / 2) + "%";
+        exoLabel.style.display = "block";
+    }
+
+    // Posicionar aguja sobre Instalación
+    posActual = posInst;
+    renderTimeline(posActual);
 }
 
-.container { 
-    max-width: 420px; 
-    margin: auto; 
+function renderTimeline(pos) {
+    const track = document.getElementById("timelineTrack");
+    const diaBadge = document.getElementById("diaBadge");
+    if(!track) return;
+
+    const offset = (50 - pos) * TRACK_SCALE;
+    track.style.transform = `translateX(${offset}%)`;
+
+    const diaCalendario = Math.round((pos / 100) * 60);
+    if(diaBadge) diaBadge.innerText = `Día ${diaCalendario}`;
+
+    setPos("pay", "payLabel", pos, "💰");
+    actualizarLogicaNegocio(pos);
 }
 
-.header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    margin-bottom: 20px; 
+// === MOTOR DE MOVIMIENTO FLUIDO (MOUSE & TOUCH) ===
+const timeline = document.getElementById("timeline");
+
+const startDragging = (e) => {
+    isDragging = true;
+    timeline.style.cursor = "grabbing";
+    startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    startPos = posActual;
+};
+
+const moveDragging = (e) => {
+    if (!isDragging) return;
+    const currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const diffX = currentX - startX;
+    
+    // Sensibilidad ajustada para móviles
+    const moveFactor = diffX / (timeline.offsetWidth * TRACK_SCALE) * 100;
+    let newPos = startPos - moveFactor;
+
+    // Limites 0 a 60 días (100%)
+    newPos = Math.max(0, Math.min(100, newPos));
+    posActual = newPos;
+    renderTimeline(posActual);
+};
+
+const stopDragging = () => {
+    isDragging = false;
+    timeline.style.cursor = "grab";
+};
+
+// Eventos Mouse
+timeline.addEventListener("mousedown", startDragging);
+window.addEventListener("mousemove", moveDragging);
+window.addEventListener("mouseup", stopDragging);
+
+// Eventos Touch (Móviles)
+timeline.addEventListener("touchstart", startDragging, { passive: true });
+window.addEventListener("touchmove", moveDragging, { passive: false });
+window.addEventListener("touchend", stopDragging);
+
+function actualizarLogicaNegocio(pos) {
+    if (!fechaInstalacionGlobal) return;
+    const p = parseFloat(document.getElementById("plan").value) || 0;
+    const a = parseFloat(document.getElementById("anticipo").value) || 0;
+    const saldoF1 = p - a;
+
+    const instEl = document.getElementById("inst");
+    const factEl = document.getElementById("fact");
+    const venceEl = document.getElementById("vence");
+    const corteEl = document.getElementById("corte");
+
+    const posInst = instEl ? parseFloat(instEl.style.left) : 0;
+    const posFact1 = factEl ? parseFloat(factEl.style.left) : 0;
+    const posV1 = venceEl ? parseFloat(venceEl.style.left) : 0;
+    const posC1 = corteEl ? parseFloat(corteEl.style.left) : 0;
+
+    let estado = "EN PLAZO", color = "var(--success)", mensaje = "";
+    let diasExo = Math.round(((posFact1 - posInst) / 100) * 60);
+
+    if (pos < posInst) mensaje = "Aún no instalado";
+    else if (pos >= posInst && pos < posFact1) mensaje = "Servicio activo sin facturación.";
+    else if (pos >= posFact1 && pos <= posV1) mensaje = "Factura emitida. Recordar pagar en fecha.";
+    else if (pos > posV1 && pos < posC1) { estado = "EN MORA"; color = "var(--warning)"; mensaje = "Cliente con pago atrasado."; }
+    else if (pos >= posC1) { estado = "CORTE PARCIAL"; color = "var(--danger)"; mensaje = "Servicio suspendido."; }
+    
+    if (esCuentaNueva && pos >= posC1) {
+         document.getElementById("bannerChurn").style.display = "block";
+         estado = "EARLY CHURN"; color = "var(--dark-danger)";
+         mensaje = "¡ALERTA! Riesgo alto de bajada temprana.";
+    } else {
+         document.getElementById("bannerChurn").style.display = "none";
+    }
+
+    const total = (pos < posFact1) ? saldoF1 : (saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm);
+    document.getElementById("info").innerHTML = `
+        <div class="state-badge" style="background:${color}; color:${(estado === 'EN MORA') ? 'black' : 'white'}">${estado}</div>
+        <p style="font-size:13px; font-weight:600">${mensaje}</p>
+        <span class="total-factura">Gs. ${total.toLocaleString()}</span>
+        <div style="font-size:12px; margin-top:5px; color:#ddd">Días exonerados: <strong>${Math.max(0, diasExo)}</strong></div>
+    `;
 }
 
-.title { 
-    font-size: 20px; 
-    font-weight: 600; 
-}
-
-.help { 
-    width: 36px; 
-    height: 36px; 
-    background: white; 
-    color: var(--tigo); 
-    border-radius: 50%; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    font-weight: bold; 
-    cursor: pointer; 
-}
-
-.card { 
-    background: rgba(255,255,255,0.12); 
-    padding: 18px; 
-    border-radius: 16px; 
-    margin-bottom: 15px; 
-    backdrop-filter: blur(10px); 
-    border: 1px solid rgba(255,255,255,0.1); 
-}
-
-label { 
-    font-size: 11px; 
-    opacity: 0.8; 
-    display: block; 
-    margin-bottom: 5px; 
-    text-transform: uppercase; 
-}
-
-input { 
-    width: 100%; 
-    height: 48px; 
-    padding: 12px; 
-    border-radius: 12px; 
-    border: none; 
-    font-size: 14px; 
-    background: #f2f2f2; 
-    margin-bottom: 15px; 
-    outline: none; 
-    color: #333; 
-}
-
-.botones { 
-    display: flex; 
-    gap: 10px; 
-    margin-top: 5px; 
-}
-
-button { 
-    flex: 1; 
-    padding: 14px; 
-    border: none; 
-    border-radius: 12px; 
-    background: white; 
-    color: var(--tigo); 
-    font-weight: 600; 
-    font-size: 15px; 
-    cursor: pointer; 
-}
-
-.btn-clear { 
-    background: rgba(255,255,255,0.2); 
-    color: white; 
-}
-
-.meses { 
-    display: flex; 
-    justify-content: space-between; 
-    margin-top: 20px; 
-    font-weight: 600; 
-    opacity: 0.8; 
-    font-size: 14px; 
-    min-height: 21px; 
-}
-
-/* --- TIMELINE MOTOR INVISIBLE BASE --- */
-.timeline { 
-    position: relative; 
-    height: 180px; 
-    margin-top: 10px; 
-    background: rgba(0,0,0,0.2); 
-    border-radius: 12px; 
-    overflow: hidden; 
-    cursor: grab; 
-}
-
-#playhead { 
-    position: absolute; 
-    left: 50%; 
-    top: 0; 
-    width: 2px; 
-    height: 100%; 
-    background: white; 
-    z-index: 100; 
-    box-shadow: 0 0 8px white; 
-    pointer-events: none; 
-}
-
-#diaBadge { 
-    position: absolute; 
-    top: -30px; 
-    left: 50%; 
-    transform: translateX(-50%); 
-    background: white; 
-    color: var(--tigo); 
-    padding: 2px 10px; 
-    border-radius: 5px; 
-    font-size: 12px; 
-    font-weight: bold; 
-    white-space: nowrap; 
-}
-
-.playhead-arrow { 
-    position: absolute; 
-    top: 0; 
-    left: 50%; 
-    transform: translate(-50%, -50%); 
-    border-left: 8px solid transparent; 
-    border-right: 8px solid transparent; 
-    border-top: 10px solid white; 
-}
-
-#timelineTrack { 
-    position: absolute; 
-    width: 300%; 
-    height: 100%; 
-    left: 0; 
-    transition: transform 0.1s linear; 
-    pointer-events: none; 
-}
-
-.line { 
-    position: absolute; 
-    top: 50%; 
-    width: 100%; 
-    height: 4px; 
-    background: rgba(255,255,255,0.3); 
-}
-
-/* --- EVENTOS (ESFERAS ANTIGUAS) --- */
-.event { 
-    position: absolute; 
-    width: 38px; 
-    height: 38px; 
-    border-radius: 50%; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    font-weight: bold; 
-    transform: translate(-50%, -50%); 
-    z-index: 2; 
-}
-
-.top { top: 35%; } 
-.bottom { top: 65%; }
-
-.install { background: #4CC9F0; } 
-.invoice { background: var(--warning); color: black; }
-.pay { background: var(--success); border: 2px solid white; cursor: grab; pointer-events: auto; }
-.charge { background: var(--danger); } 
-.charge-total { background: var(--dark-danger); color: white; }
-
-.label { 
-    position: absolute; 
-    font-size: 10px; 
-    width: 85px; 
-    text-align: center; 
-    transform: translateX(-50%); 
-    font-weight: 600; 
-}
-
-.label.top { top: 5%; } 
-.label.bottom { top: 85%; }
-
-.exoneracion-bar { 
-    position: absolute; 
-    top: 48%; 
-    height: 8px; 
-    background: var(--success); 
-    opacity: 0.3; 
-    border-radius: 4px; 
-}
-
-/* --- RESULTADOS --- */
-.result { 
-    margin-top: 15px; 
-    font-size: 14px; 
-    line-height: 1.6; 
-}
-
-.state-badge { 
-    padding: 4px 10px; 
-    border-radius: 6px; 
-    font-weight: 600; 
-    display: inline-block; 
-    margin-bottom: 10px; 
-    font-size: 12px; 
-}
-
-.total-factura { 
-    font-size: 22px; 
-    color: var(--warning); 
-    font-weight: 600; 
-    display: block; 
-    margin: 10px 0; 
-}
-
-.tip-pago { 
-    color: var(--success); 
-    font-size: 12px; 
-    display: block; 
-    margin-top: 2px; 
-}
-
-.churn-banner { 
-    margin-top: 15px; 
-    padding: 12px; 
-    border-radius: 12px; 
-    background: var(--dark-danger); 
-    border: 2px solid var(--danger); 
-    display: none; 
-    animation: pulse 2s infinite; 
-}
-
-@keyframes pulse { 
-    0%, 100% { transform: scale(1); } 
-    50% { transform: scale(0.98); } 
-}
-
-/* --- MODAL --- */
-.modal { 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%; 
-    background: rgba(0,0,0,0.9); 
-    display: none; 
-    justify-content: center; 
-    align-items: center; 
-    z-index: 1000; 
-}
-
-.modal-content { 
-    background: white; 
-    padding: 15px; 
-    border-radius: 16px; 
-    max-width: 500px; 
-    width: 90%; 
-    max-height: 90vh; 
-    overflow-y: auto; 
-    color: #333; 
-}
-
-.modal-content img { 
-    width: 100%; 
-    border-radius: 8px; 
-    margin-bottom: 10px; 
-}
-
-/* =======================================
-   UX VISUAL MODERN ACORDE A IMAGEN
-   ======================================= */
-.ux-board {
-    margin-top: 20px;
-}
-.slider-wrapper {
-    background: #0d2758; /* Azul profundo moderno */
-    padding: 25px 15px 90px 15px; /* Padding bottom inmenso para Pago flotante */
-    border-radius: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-.slider-wrapper label {
-    font-size: 13px; font-weight: bold; color: #FFD166;
-    text-align: center; display: block; margin-bottom: 50px;
-}
-
-.ux-timeline-track {
-    position: relative; width: 100%; height: 3px;
-    background: rgba(255,255,255,0.2); margin-top: 10px;
-    border-radius: 2px;
-}
-
-.ux-event {
-    position: absolute; top: 50%; transform: translate(-50%, -50%);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.ux-icon {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: rgba(255,255,255,0.1); color: white; display: flex;
-    align-items: center; justify-content: center; font-size: 16px;
-    border: 2px solid rgba(255,255,255,0.3); z-index: 2;
-}
-
-.ux-label {
-    position: absolute; top: 38px; font-size: 11px; color: #ddd; font-weight: 500;
-}
-
-.ux-pago-cursor {
-    position: absolute; top: 60px; transform: translateX(-50%);
-    display: flex; flex-direction: column; align-items: center; z-index: 4;
-    transition: none; pointer-events: none;
-}
-.ux-pago-icon {
-    width: 38px; height: 38px; background: #FFD166; border-radius: 50%; display: flex;
-    align-items: center; justify-content: center; font-size: 20px;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.5); border: 3px solid white;
-}
-.ux-pago-label {
-    font-size: 13px; font-weight: bold; color: #FFD166; margin-top: 6px;
-}
-
-/* Thumb super grande transparente para dominar los toques */
-.absolute-slider {
-    position: absolute !important; top: -30px; left: 0; width: 100%; height: 120px;
-    opacity: 0; cursor: pointer; z-index: 10;
-    /* MEJORAS MÓVILES */
-    -webkit-appearance: none; appearance: none; background: transparent;
-    touch-action: pan-y; /* Permite scroll vertical pero regala el swipe horizontal al slider */
-    -webkit-tap-highlight-color: transparent; /* Quita el cuadro gris feo de Android */
-    outline: none; /* Quita borde focus */
-}
-/* Hacer el verdadero "agarre" gigante para que los pulgares no fallen */
-.absolute-slider::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none;
-    width: 60px; height: 120px; background: transparent; cursor: grab;
-}
-.absolute-slider::-moz-range-thumb {
-    width: 60px; height: 120px; background: transparent; border: none; cursor: grab;
-}
-
-/* PANELS */
-.ux-status-panel {
-    background: #0d2758; padding: 20px; border-radius: 12px;
-    margin-bottom: 15px; text-align: center;
-}
-.ux-dates-board {
-    background: rgba(0,0,0,0.1); padding: 20px; border-radius: 12px;
-}
-.dates-title {
-    font-size: 13px; font-weight: bold; color: #FFD166; border-bottom: 1px dashed rgba(255,255,255,0.2); padding-bottom: 8px; margin-bottom: 15px;
-}
-.ux-date-row {
-    font-size: 13px; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); color: #FFF;
-    display: flex; justify-content: space-between;
-}
-.ux-date-val { font-weight: bold; color: white;}
+function abrirAyuda() { document.getElementById("modalAyuda").style.display = "flex"; }
+function cerrarAyuda() { document.getElementById("modalAyuda").style.display = "none"; }
+function limpiar() { location.reload(); }
