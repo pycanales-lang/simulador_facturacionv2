@@ -124,6 +124,7 @@ button {
     border-radius: 12px; 
     overflow: hidden; 
     cursor: grab; 
+    touch-action: none; /* Previene scroll del navegador en móviles al simular */
 }
 
 #playhead { 
@@ -164,7 +165,7 @@ button {
 
 #timelineTrack { 
     position: absolute; 
-    width: 300%; 
+    width: 200%; /* CORRECCIÓN 2: Ajustado a 200% para mejor control */
     height: 100%; 
     left: 0; 
     transition: transform 0.1s linear; 
@@ -179,7 +180,6 @@ button {
     background: rgba(255,255,255,0.3); 
 }
 
-/* --- EVENTOS (ESFERAS) --- */
 .event { 
     position: absolute; 
     width: 38px; 
@@ -223,7 +223,6 @@ button {
     border-radius: 4px; 
 }
 
-/* --- RESULTADOS --- */
 .result { 
     margin-top: 15px; 
     font-size: 14px; 
@@ -247,13 +246,6 @@ button {
     margin: 10px 0; 
 }
 
-.tip-pago { 
-    color: var(--success); 
-    font-size: 12px; 
-    display: block; 
-    margin-top: 2px; 
-}
-
 .churn-banner { 
     margin-top: 15px; 
     padding: 12px; 
@@ -269,7 +261,6 @@ button {
     50% { transform: scale(0.98); } 
 }
 
-/* --- MODAL --- */
 .modal { 
     position: fixed; 
     top: 0; 
