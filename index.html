@@ -15,11 +15,11 @@
         </div>
 
         <div class="card">
-            <label>Fecha instalación</label>
+            <label for="fecha">Fecha instalación</label>
             <input type="date" id="fecha">
-            <label>Valor plan</label>
+            <label for="plan">Valor plan</label>
             <input type="number" id="plan" placeholder="0">
-            <label>Anticipo</label>
+            <label for="anticipo">Anticipo</label>
             <input type="number" id="anticipo" placeholder="0">
             <div class="botones">
                 <button onclick="simular()">Simular</button>
@@ -83,28 +83,28 @@
             </div>
         </div>
 
-        <div style="display:none;">
+        <div style="display:none; visibility: hidden; pointer-events: none;">
             <div class="timeline" id="timeline">
                 <div id="timelineTrack">
                     <div id="inst"></div><div id="fact"></div><div id="vence"></div><div id="corte"></div>
                     <div id="fact2"></div><div id="vence2"></div><div id="corteT"></div>
                     <div id="pay"></div><div id="exoBar"></div>
+                    <div id="playhead"></div><div id="diaBadge"></div>
                 </div>
             </div>
             <div id="info"></div>
             <div id="detalleFacturacion"></div>
             <div id="bannerChurn"></div>
-            <div id="diaBadge"></div>
         </div>
     </div>
 
     <div id="modalAyuda" class="modal">
         <div class="modal-content">
-            <div style="text-align:right; font-weight:bold; cursor:pointer" onclick="cerrarAyuda()">CERRAR ✖</div>
-            <img src="assets/imagenes/Diapositiva2.PNG">
-            <img src="assets/imagenes/Diapositiva3.PNG">
-            <img src="assets/imagenes/Diapositiva4.PNG">
-            <img src="assets/imagenes/Diapositiva5.PNG">
+            <div style="text-align:right; font-weight:bold; cursor:pointer; padding:10px;" onclick="cerrarAyuda()">CERRAR ✖</div>
+            <img src="assets/imagenes/Diapositiva2.PNG" alt="Ayuda 2">
+            <img src="assets/imagenes/Diapositiva3.PNG" alt="Ayuda 3">
+            <img src="assets/imagenes/Diapositiva4.PNG" alt="Ayuda 4">
+            <img src="assets/imagenes/Diapositiva5.PNG" alt="Ayuda 5">
         </div>
     </div>
 
