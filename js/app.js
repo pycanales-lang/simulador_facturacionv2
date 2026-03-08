@@ -72,25 +72,29 @@ function simular() {
             : (60 - regla.emision + regla.corte); // Caso muy extendido, ej: ciclo 1 emisión el 1, vence el 15, corte el 3 del OTRO OTRO mes. (30+30+3). Pero según las imágenes el corte es del mes siguiente (3).
             
     // Ajuste fino del Corte para no complicar el array:
-    // Corte 1 = 3 -> (30-1+3) = 32 días post emisión.
-    // Corte 7 = 9 -> (30-7+9) = 32 días post emisión.
-    // Corte 15 = 17 -> (30-15+17) = 32 días post emisión.
-    // Corte 21 = 22 -> (30-21+22) = 31 días post emisión.
-    // Por ende, podemos estandarizar según imágenes empíricas que el Corte siempre se da ~31/32 días después de emitida la factura.
-    
     offsetCorte = 32; // Promedio contable de todas las diapos
     const posC1 = posFact1 + (offsetCorte / 60 * 100);
 
-    // Renderizar Hitos en el Track (CON NUEVOS ICONOS UX)
+    // Cálculos independientes para Segundo Ciclo (30 días = 50% de la barra)
+    const posFact2 = posFact1 + 50;
+    const posV2 = posV1 + 50;
+    const posC2 = posC1 + 50;
+
+    // Renderizar Hitos base en el Track oculto
     setPos("inst", "instLabel", posInst, "🏠");
     setPos("fact", "factLabel", posFact1, "🧾");
     setPos("vence", "venceLabel", posV1, "📅");
     setPos("corte", "corteLabel", posC1, "🚫");
+    setPos("fact2", "fact2Label", posFact2, "🧾");
+    setPos("vence2", "vence2Label", posV2, "📅");
+    setPos("corteT", "corteTLabel", posC2, "🚫");
 
     // Barra de exoneración (Entre I y 1)
     const exoBar = document.getElementById("exoBar");
-    exoBar.style.left = posInst + "%";
-    exoBar.style.width = (posFact1 - posInst) + "%";
+    if(exoBar) {
+        exoBar.style.left = posInst + "%";
+        exoBar.style.width = (posFact1 - posInst) + "%";
+    }
 
     // INICIO: Posicionar aguja sobre Instalación
     posActual = posInst;
@@ -146,16 +150,13 @@ function actualizarLogicaNegocio(pos) {
         mensaje = "Cliente con pago atrasado.";
     } 
 
-    // 3. Lógica de Corte y 2da Factura
+    // 3. Lógica de Corte
     if (pos >= posC1) {
         estado = "CORTE PARCIAL"; color = "var(--danger)";
-        mensaje = "Emisión F2 y Suspensión de Servicio.";
-        mostrarSegundaFactura(posV1); // Este llama visualmente a mostrar las esferas
-    } else {
-        ocultarSegundaFactura();
+        mensaje = "Servicio suspendido.";
     }
     
-    // EARLY CHURN DETECTION (Nuevas reglas comerciales: Al sobrepasar la Vencida Y llegar al Corte/F2)
+    // EARLY CHURN DETECTION (Nuevas reglas comerciales: Al sobrepasar la Vencida Y llegar al Corte)
     if (esCuentaNueva && pos >= posC1) {
          document.getElementById("bannerChurn").style.display = "block";
          estado = "EARLY CHURN";
@@ -201,16 +202,30 @@ function actualizarLogicaNegocio(pos) {
     // Mostrar tabla resumen requerida
     let detalleHTML = `
         <div style="text-align:left; font-size:13px; line-height:1.8;">
-            <div><span style="opacity:0.8">🏠 Instalación:</span> <strong>${dInstText}</strong></div>
-            <div><span style="opacity:0.8">🧾 Emisión F1:</span> <strong>${fEmi.toLocaleDateString()}</strong></div>
-            <div><span style="opacity:0.8">📅 Vencimiento:</span> <strong>${fVence.toLocaleDateString()}</strong></div>
-            <div><span style="opacity:0.8">🚫 Corte Parcial:</span> <strong>${fCorte.toLocaleDateString()}</strong></div>
-    `;
+            <div><span style="opacity:0.8">🏠 Instalación:</span> <strong>${dInstText}</strong></div>`;
 
+    if (pos >= posFact1) {
+        detalleHTML += `<div><span style="opacity:0.8">🧾 Emisión F1:</span> <strong>${fEmi.toLocaleDateString()}</strong></div>`;
+    }
+    if (pos >= posV1) {
+        detalleHTML += `<div><span style="opacity:0.8">📅 Vencimiento 1:</span> <strong>${fVence.toLocaleDateString()}</strong></div>`;
+    }
     if (pos >= posC1) {
+        detalleHTML += `<div><span style="opacity:0.8">🚫 Corte Parcial:</span> <strong>${fCorte.toLocaleDateString()}</strong></div>`;
+    }
+
+    const posFact2 = parseFloat(document.getElementById("fact2").style.left) || 0;
+    const posV2 = parseFloat(document.getElementById("vence2").style.left) || 0;
+
+    if (pos >= posFact2) {
         const fEmi2 = new Date(fEmi);
         fEmi2.setMonth(fEmi2.getMonth() + 1);
         detalleHTML += `<div><span style="opacity:0.8">🧾 Emisión F2:</span> <strong>${fEmi2.toLocaleDateString()}</strong></div>`;
+    }
+    if (pos >= posV2) {
+        const fVence2 = new Date(fVence);
+        fVence2.setMonth(fVence2.getMonth() + 1);
+        detalleHTML += `<div><span style="opacity:0.8">📅 Vencimiento 2:</span> <strong>${fVence2.toLocaleDateString()}</strong></div>`;
     }
 
     detalleHTML += `</div>`;
@@ -312,13 +327,15 @@ function actualizarUX() {
     const posV1 = parseFloat(document.getElementById("vence").style.left) || 0;
     const posC1 = parseFloat(document.getElementById("corte").style.left) || 0;
     const posFact2 = parseFloat(document.getElementById("fact2").style.left) || 0;
+    const posV2 = parseFloat(document.getElementById("vence2").style.left) || 0;
 
     const hitos = [
         { id: "ux-inst", pos: posInst },
         { id: "ux-fact1", pos: posFact1 },
         { id: "ux-vence", pos: posV1 },
         { id: "ux-corte", pos: posC1 },
-        { id: "ux-fact2", pos: posFact2 }
+        { id: "ux-fact2", pos: posFact2 },
+        { id: "ux-vence2", pos: posV2 }
     ];
 
     // Posicionar hitos en nuestro Track UX Horizontal
@@ -344,11 +361,6 @@ function actualizarUX() {
             }
         }
     });
-
-    // Visibilidad de F2
-    const baseF2 = document.getElementById("fact2");
-    const uxF2 = document.getElementById("ux-fact2");
-    if(baseF2 && uxF2) uxF2.style.display = baseF2.style.display;
 
     // 2. Clonar Resultados Principales
     const baseInfo = document.getElementById("info");
