@@ -359,6 +359,10 @@ button {
 .absolute-slider {
     position: absolute !important; top: -30px; left: 0; width: 100%; height: 120px;
     opacity: 0; cursor: pointer; z-index: 10;
+    /* MEJORAS MÓVILES */
+    touch-action: pan-y; /* Permite scroll vertical pero regala el swipe horizontal al slider */
+    -webkit-tap-highlight-color: transparent; /* Quita el cuadro gris feo de Android */
+    outline: none; /* Quita borde focus */
 }
 
 /* PANELS */
