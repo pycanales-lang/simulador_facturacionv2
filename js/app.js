@@ -272,34 +272,23 @@ function actualizarMesesUI(tresMeses) {
     `;
 }
 
-// Interacción Drag
-const timeline = document.getElementById("timeline");
-const dragStart = (e) => { isDragging = true; startX = e.touches ? e.touches[0].clientX : e.clientX; startPos = posActual; timeline.style.cursor = "grabbing"; };
-const dragMove = (e) => {
-    if (!isDragging) return;
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    const rect = timeline.getBoundingClientRect();
-    const delta = ((x - startX) / rect.width) * 100 * 0.5;
-    posActual = Math.max(0, Math.min(100, startPos - delta));
-    renderTimeline(posActual);
-};
-const dragEnd = () => { isDragging = false; timeline.style.cursor = "grab"; };
-
-timeline.addEventListener("mousedown", dragStart);
-window.addEventListener("mousemove", dragMove);
-window.addEventListener("mouseup", dragEnd);
-timeline.addEventListener("touchstart", dragStart, { passive: false });
-window.addEventListener("touchmove", (e) => { if (isDragging) e.preventDefault(); dragMove(e); }, { passive: false });
-window.addEventListener("touchend", dragEnd);
+// ----------------------------------------------------
+// INTERACCIÓN DRAG BASE DESACTIVADA (Para priorizar el Slider UX Mobile sin conflictos)
+// ----------------------------------------------------
 
 // ==========================================
 // CAPA UX VISUAL (SEPARADA DEL MOTOR BASE)
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Escuchar los cambios provenientes del layout base 
+    // 1. Escuchar los cambios provenientes del layout base (Refactorizado con requestAnimationFrame)
+    let updatePending = false;
     const observer = new MutationObserver(() => {
-        if (!fechaInstalacionGlobal) return;
-        actualizarUX();
+        if (!fechaInstalacionGlobal || updatePending) return;
+        updatePending = true;
+        requestAnimationFrame(() => {
+            actualizarUX();
+            updatePending = false;
+        });
     });
     const infoDiv = document.getElementById("info");
     if (infoDiv) observer.observe(infoDiv, { childList: true, subtree: true });
@@ -316,6 +305,34 @@ document.addEventListener("DOMContentLoaded", () => {
             if(uxPago) uxPago.style.left = posActual + "%";
             const dayLabel = document.getElementById("ux-day");
             if(dayLabel) dayLabel.innerText = Math.round((posActual / 100) * 60);
+        });
+
+        // SNAP (IMÁN): Al soltar la barra, busca el hito más cercano en app.js y se pega a él
+        slider.addEventListener("change", (e) => {
+            const hitosValues = [
+                parseFloat(document.getElementById("inst").style.left) || 0,
+                parseFloat(document.getElementById("fact").style.left) || 0,
+                parseFloat(document.getElementById("vence").style.left) || 0,
+                parseFloat(document.getElementById("corte").style.left) || 0,
+                parseFloat(document.getElementById("fact2").style.left) || 0,
+                parseFloat(document.getElementById("vence2").style.left) || 0
+            ];
+            
+            const current = parseFloat(e.target.value);
+            // Encontrar el valor más cercano (si está a menos de 4%)
+            let snapPos = current;
+            for(let v of hitosValues) {
+                if (Math.abs(current - v) < 4 && v > 0) {
+                    snapPos = v;
+                    break;
+                }
+            }
+            
+            if(snapPos !== current) {
+                slider.value = snapPos;
+                posActual = snapPos;
+                renderTimeline(posActual);
+            }
         });
     }
 });
