@@ -25,81 +25,97 @@ function obtenerCicloAsignado(dia) {
     return 1;
 }
 
-// Función auxiliar para posicionar elementos (Asegúrate de tenerla definida)
+// Función auxiliar para mover elementos (Asegúrate que esté presente)
 function setPos(idEvent, idLabel, pos, texto) {
     const ev = document.getElementById(idEvent);
     const lb = document.getElementById(idLabel);
-    if(ev) ev.style.left = pos + "%";
-    if(lb) lb.style.left = pos + "%";
-    if(ev && texto) ev.innerText = texto;
-    if(ev) ev.style.display = "flex";
-    if(lb) lb.style.display = "block";
+    if (!ev || !lb) return;
+    ev.style.left = pos + "%";
+    lb.style.left = pos + "%";
+    ev.style.display = "flex";
+    lb.style.display = "block";
+    if (texto) ev.innerText = texto;
 }
 
 function simular() {
     const fStr = document.getElementById("fecha").value;
     if (!fStr) return alert("Seleccione fecha de instalación");
 
-    // Forzar lectura correcta de la fecha local
-    const partes = fStr.split('-');
-    fechaInstalacionGlobal = new Date(partes[0], partes[1] - 1, partes[2]);
+    // Fix fecha: evitar desfase por zona horaria
+    const [year, month, day] = fStr.split('-').map(Number);
+    fechaInstalacionGlobal = new Date(year, month - 1, day);
     
     const diaInst = fechaInstalacionGlobal.getDate();
     cicloActual = obtenerCicloAsignado(diaInst);
 
+    // Lógica Churn
     const hoy = new Date();
     const diffMeses = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 + (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
     esCuentaNueva = diffMeses <= 4;
-
-    if (typeof actualizarMesesUI === 'function') actualizarMesesUI(false);
+    document.getElementById("bannerChurn").style.display = esCuentaNueva ? "block" : "none";
 
     // --- CÁLCULO DE POSICIONES (Base 60 días) ---
-    
-    // 1. La Instalación SIEMPRE es el punto de partida visual (Día 1 del timeline)
-    // Usamos el día de la instalación como base relativa
+    // 1. Instalación (Día del mes inicial)
     const posInst = (diaInst / 60) * 100;
     
-    // 2. Calcular cuándo cae la Factura 1 (Ciclo de facturación)
-    let diaFact1;
-    if (cicloActual > diaInst) {
-        diaFact1 = cicloActual; // Mismo mes
-    } else {
-        diaFact1 = cicloActual + 30; // Mes siguiente
+    // 2. Factura 1 (Si el ciclo ya pasó este mes, va al siguiente)
+    let diaFact1 = cicloActual;
+    if (cicloActual <= diaInst) {
+        diaFact1 = cicloActual + 30;
     }
     const posFact1 = (diaFact1 / 60) * 100;
 
     const regla = REGLAS_NEGOCIO.ciclos[cicloActual];
     
-    // 3. Posiciones de Vencimiento y Corte basadas en la Factura 1
-    let diasHastaVence = regla.vence - cicloActual;
-    if (diasHastaVence < 0) diasHastaVence += 30;
-    const posV1 = ((diaFact1 + diasHastaVence) / 60) * 100;
-    
-    let diasHastaCorte = regla.corte - cicloActual;
-    if (diasHastaCorte < 0) diasHastaCorte += 30;
-    const posC1 = ((diaFact1 + diasHastaCorte) / 60) * 100;
+    // 3. Vencimiento y Corte (Relativos a la Factura 1)
+    let difVence = regla.vence - cicloActual;
+    if (difVence < 0) difVence += 30;
+    const posV1 = ((diaFact1 + difVence) / 60) * 100;
 
-    // Renderizar Hitos
+    let difCorte = regla.corte - cicloActual;
+    if (difCorte < 0) difCorte += 30;
+    const posC1 = ((diaFact1 + difCorte) / 60) * 100;
+
+    // Renderizar esferas
     setPos("inst", "instLabel", posInst, "I");
     setPos("fact", "factLabel", posFact1, "1");
     setPos("vence", "venceLabel", posV1, "V");
     setPos("corte", "corteLabel", posC1, "C");
 
-    // Corregir Barra de exoneración y Label
+    // Sincronizar Barra de Exoneración
     const exoBar = document.getElementById("exoBar");
     const exoLabel = document.getElementById("exoLabel");
     exoBar.style.left = posInst + "%";
     exoBar.style.width = (posFact1 - posInst) + "%";
     exoBar.style.display = "block";
-    
-    if(exoLabel) {
-        exoLabel.style.left = (posInst + (posFact1 - posInst)/2) + "%";
-        exoLabel.style.display = "block";
-    }
+    exoLabel.style.display = "block";
+    exoLabel.style.left = (posInst + (posFact1 - posInst) / 2) + "%";
 
-    // INICIO: Posicionar aguja EXACTAMENTE sobre Instalación
+    // AGUJA: Posicionar exactamente sobre la Instalación al iniciar
     posActual = posInst;
     renderTimeline(posActual);
+}
+
+function renderTimeline(pos) {
+    const track = document.getElementById("timelineTrack");
+    const diaBadge = document.getElementById("diaBadge");
+    if (!track || !diaBadge) return;
+
+    // Movimiento del fondo (track)
+    const offset = (50 - pos) * TRACK_SCALE;
+    track.style.transform = `translateX(${offset}%)`;
+
+    // Actualizar el número del día en el badge
+    const diaSimulado = Math.round((pos / 100) * 60);
+    diaBadge.innerText = `Día ${diaSimulado}`;
+
+    // La esfera de Pago (P) sigue a la aguja
+    setPos("pay", "payLabel", pos, "P");
+
+    // Llamar a la lógica de cálculos (solo si la función existe)
+    if (typeof actualizarLogicaNegocio === "function") {
+        actualizarLogicaNegocio(pos);
+    }
 }
 
 function renderTimeline(pos) {
@@ -122,3 +138,4 @@ function renderTimeline(pos) {
         actualizarLogicaNegocio(pos);
     }
 }
+
