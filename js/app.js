@@ -1,22 +1,19 @@
 /**
- * SIMULADOR TELCO PRO - MOTOR DINÁMICO SIEBEL 2026
- * Sincronización total de Timeline, Esferas y Mensajes de Negocio
+ * SIMULADOR TELCO PRO - MOTOR SINCRONIZADO SIEBEL 2026
  */
-
 const REGLAS_NEGOCIO = {
-    ciclos: {
-        1:  { emision: 1,  vence: 15, corte: 22 },
-        7:  { emision: 7,  vence: 21, corte: 9 }, // Del mes siguiente
-        15: { emision: 15, vence: 1,  corte: 17 }, // Del mes siguiente
-        21: { emision: 21, vence: 5,  corte: 22 }  // Del mes siguiente
-    },
-    config: { cargo_adm: 12000 }
+    HOME: {
+        ciclos: {
+            1:  { emision: 1,  vence: 15, corte: [22, 23] },
+            7:  { emision: 7,  vence: 21, corte: [9, 10] },
+            15: { emision: 15, vence: 1,  corte: [17, 18] },
+            21: { emision: 21, vence: 5,  corte: [22, 23] }
+        }
+    }
 };
 
-let posActual = 0, fechaInstalacionGlobal = null, cicloActual = 0, esCuentaNueva = false;
-let isDragging = false, startX = 0, startPos = 0;
-
-const TRACK_SCALE = 3; // Escala visual
+let posActual = 0, fechaInstalacionGlobal = null, esCuentaNueva = false, cicloActual = 0;
+const TRACK_SCALE = 2; // Ajustado a escala de track 200%
 
 function obtenerCicloAsignado(dia) {
     if (dia <= 6) return 7; 
@@ -26,53 +23,38 @@ function obtenerCicloAsignado(dia) {
 }
 
 function simular() {
-    const fStr = document.getElementById("fecha").value;
-    if (!fStr) return alert("Seleccione fecha de instalación");
-
+    let fStr = document.getElementById("fecha").value;
+    if (!fStr) return alert("Ingrese fecha de instalación");
+    
     fechaInstalacionGlobal = new Date(fStr + 'T00:00:00');
-    const diaInst = fechaInstalacionGlobal.getDate();
-    cicloActual = obtenerCicloAsignado(diaInst);
+    let dia = fechaInstalacionGlobal.getDate();
+    cicloActual = obtenerCicloAsignado(dia);
 
-    // Verificar Early Churn (< 4 meses desde hoy)
-    const hoy = new Date();
-    const diffMeses = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 + (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
+    let hoy = new Date();
+    let diffMeses = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 + (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
     esCuentaNueva = diffMeses <= 4;
 
-    actualizarMesesUI(false);
+    actualizarMeses(false);
 
-    // --- CÁLCULO DE POSICIONES (Base 60 días para cubrir 2 meses) ---
-    // Posición Instalación (Día 0 de la simulación)
-    const posInst = (diaInst / 60) * 100;
+    let posInst = (dia / 60) * 100;
+    let diaEmision = cicloActual;
+    let posFact = (diaEmision <= dia && cicloActual !== 1) ? ((30 + diaEmision) / 60) * 100 : (cicloActual === 1 ? 52 : (diaEmision / 60) * 100);
     
-    // Posición Factura 1 (Ciclo más cercano)
-    let posFact1 = (cicloActual <= diaInst && cicloActual !== 1) 
-        ? ((30 + cicloActual) / 60) * 100 
-        : (cicloActual === 1 ? 52 : (cicloActual / 60) * 100);
+    let diaV1 = REGLAS_NEGOCIO.HOME.ciclos[cicloActual].vence;
+    let posV1 = posFact + (diaV1 < cicloActual ? (diaV1 + (30 - cicloActual)) / 60 * 100 : (diaV1 - cicloActual) / 60 * 100);
+    
+    let diaC1 = REGLAS_NEGOCIO.HOME.ciclos[cicloActual].corte[0];
+    let posC1 = posFact + (diaC1 < cicloActual ? (diaC1 + (30 - cicloActual)) / 60 * 100 : (diaC1 - cicloActual) / 60 * 100);
 
-    const regla = REGLAS_NEGOCIO.ciclos[cicloActual];
-    
-    // Posición Vencimiento 1
-    const posV1 = posFact1 + (regla.vence < cicloActual 
-        ? (regla.vence + (30 - cicloActual)) / 60 * 100 
-        : (regla.vence - cicloActual) / 60 * 100);
-    
-    // Posición Corte Parcial
-    const posC1 = posFact1 + (regla.corte < cicloActual 
-        ? (regla.corte + (30 - cicloActual)) / 60 * 100 
-        : (regla.corte - cicloActual) / 60 * 100);
-
-    // Renderizar Hitos en el Track
     setPos("inst", "instLabel", posInst, "I");
-    setPos("fact", "factLabel", posFact1, "1");
+    setPos("fact", "factLabel", posFact, "1");
     setPos("vence", "venceLabel", posV1, "V");
     setPos("corte", "corteLabel", posC1, "C");
-
-    // Barra de exoneración (Entre I y 1)
-    const exoBar = document.getElementById("exoBar");
+    
+    let exoBar = document.getElementById("exoBar");
     exoBar.style.left = posInst + "%";
-    exoBar.style.width = (posFact1 - posInst) + "%";
+    exoBar.style.width = (posFact - posInst) + "%";
 
-    // INICIO: Posicionar aguja sobre Instalación
     posActual = posInst;
     renderTimeline(posActual);
 }
@@ -80,135 +62,133 @@ function simular() {
 function renderTimeline(pos) {
     const track = document.getElementById("timelineTrack");
     const diaBadge = document.getElementById("diaBadge");
-
-    // Movimiento del track para que la aguja central coincida con 'pos'
+    
     const offset = (50 - pos) * TRACK_SCALE;
     track.style.transform = `translateX(${offset}%)`;
-
-    // Calcular días transcurridos desde el inicio del mes 1
-    const diaCalendario = Math.round((pos / 100) * 60);
-    diaBadge.innerText = `Día ${diaCalendario}`;
-
+    
+    let diasTrans = Math.round((pos / 100) * 60);
+    diaBadge.innerText = `Día ${diasTrans}`;
+    
     setPos("pay", "payLabel", pos, "P");
-    actualizarLogicaNegocio(pos);
+    actualizarDetalle();
 }
 
-function actualizarLogicaNegocio(pos) {
+function actualizarDetalle() {
     if (!fechaInstalacionGlobal) return;
+    let p = parseFloat(document.getElementById("plan").value) || 0;
+    let a = parseFloat(document.getElementById("anticipo").value) || 0;
+    let s = p - a;
 
-    const p = parseFloat(document.getElementById("plan").value) || 0;
-    const a = parseFloat(document.getElementById("anticipo").value) || 0;
-    const saldoF1 = p - a;
+    let posV1 = parseFloat(document.getElementById("vence").style.left);
+    let posC1 = parseFloat(document.getElementById("corte").style.left);
 
-    const posInst = parseFloat(document.getElementById("inst").style.left);
-    const posFact1 = parseFloat(document.getElementById("fact").style.left);
-    const posV1 = parseFloat(document.getElementById("vence").style.left);
-    const posC1 = parseFloat(document.getElementById("corte").style.left);
+    let estado = "EN PLAZO", color = "var(--success)", msg = "Cliente al día. No requiere gestión.";
 
-    let estado = "EN PLAZO", color = "var(--success)", mensaje = "";
-    
-    // 1. Mensaje de Exoneración (Mientras esté entre Instalación y Factura 1)
-    if (pos >= posInst && pos < posFact1) {
-        const diasExo = Math.round(((posFact1 - posInst) / 100) * 60);
-        mensaje = `Días exonerados: ${diasExo} (desde instalación hasta emisión).`;
-    }
-
-    // 2. Lógica de Mora
-    if (pos > posV1) {
-        estado = "EN MORA"; color = "var(--warning)";
-        mensaje = "⚠ Cliente superó fecha de vencimiento. Genera cargo administrativo.";
+    if (posActual > posV1) {
+        estado = "EN MORA"; color = "var(--warning)"; msg = "⚠ Cliente no pagó la 1ra factura.";
         if (esCuentaNueva) document.getElementById("bannerChurn").style.display = "block";
     } else {
         document.getElementById("bannerChurn").style.display = "none";
     }
 
-    // 3. Lógica de Corte y 2da Factura
-    if (pos >= posC1) {
-        estado = "CORTE PARCIAL"; color = "var(--danger)";
-        mensaje = "🚨 Servicio Suspendido. Se emite 2da factura con saldo pendiente.";
-        mostrarSegundaFactura(posV1);
+    if (posActual >= posC1) {
+        estado = "CORTE PARCIAL"; color = "var(--danger)"; msg = "🚨 Servicio suspendido por mora.";
+        expandirSegundaFactura(posV1);
     } else {
-        ocultarSegundaFactura();
+        contraerSegundaFactura();
     }
 
-    // 4. Cálculo de Deuda
-    const total = (estado === "EN PLAZO") ? saldoF1 : (saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm);
-
+    let total = (estado === "EN PLAZO") ? s : (s + p + 12000);
+    
     document.getElementById("info").innerHTML = `
         <div class="state-badge" style="background:${color}; color:${estado === 'EN MORA' ? 'black' : 'white'}">${estado}</div>
-        <p style="font-size:13px; font-weight:600">${mensaje}</p>
+        <p style="font-size:12px; margin-bottom:5px; font-weight:600">${msg}</p>
         <span class="total-factura">Gs. ${total.toLocaleString()}</span>
     `;
 
-    // Detalle de fechas (Regla de Oro)
-    const fEmi = new Date(fechaInstalacionGlobal);
+    let fEmi = new Date(fechaInstalacionGlobal);
     fEmi.setDate(cicloActual);
     if (cicloActual <= fechaInstalacionGlobal.getDate()) fEmi.setMonth(fEmi.getMonth() + 1);
-
+    
     document.getElementById("detalleFacturacion").innerHTML = `
-        Ciclo: <strong>${cicloActual}</strong> | Emisión F1: <strong>${fEmi.toLocaleDateString()}</strong><br>
-        Saldo inicial: <strong>Gs. ${saldoF1.toLocaleString()}</strong>
+        Ciclo Asignado: <strong>${cicloActual}</strong> | Emisión F1: <strong>${fEmi.toLocaleDateString()}</strong>
     `;
-}
-
-// --- FUNCIONES DE CONTROL VISUAL ---
-
-function mostrarSegundaFactura(posV1) {
-    const pF2 = posV1 + 10;
-    const pV2 = pF2 + 15;
-    const pCT = pV2 + 8;
-    setPos("fact2", "fact2Label", pF2, "2");
-    setPos("vence2", "vence2Label", pV2, "V");
-    setPos("corteT", "corteTLabel", pCT, "T");
-    ["fact2", "fact2Label", "vence2", "vence2Label", "corteT", "corteTLabel", "corte", "corteLabel"].forEach(id => {
-        const el = document.getElementById(id); if (el) el.style.display = id.includes("Label") ? "block" : "flex";
-    });
-    actualizarMesesUI(true);
-}
-
-function ocultarSegundaFactura() {
-    ["fact2", "fact2Label", "vence2", "vence2Label", "corteT", "corteTLabel"].forEach(id => {
-        const el = document.getElementById(id); if (el) el.style.display = "none";
-    });
-    actualizarMesesUI(false);
 }
 
 function setPos(id, lb, pos, txt) {
-    const e = document.getElementById(id), l = document.getElementById(lb);
-    if (e) { e.style.left = pos + "%"; e.innerHTML = txt; }
-    if (l) l.style.left = pos + "%";
+    let e = document.getElementById(id), l = document.getElementById(lb);
+    if(e) { e.style.left = pos + "%"; e.innerHTML = txt; }
+    if(l) l.style.left = pos + "%";
 }
 
-function actualizarMesesUI(tresMeses) {
-    if (!fechaInstalacionGlobal) return;
-    const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    const m1 = fechaInstalacionGlobal.getMonth();
-    const m2 = (m1 + 1) % 12;
-    const m3 = (m1 + 2) % 12;
-    document.getElementById("meses").innerHTML = `
-        <span>${meses[m1]}</span><span>${meses[m2]}</span>${tresMeses ? `<span>${meses[m3]}</span>` : ""}
-    `;
+function expandirSegundaFactura(v1) {
+    let pf2 = v1 + 12, pv2 = pf2 + 15, pct = pv2 + 10;
+    setPos("fact2", "fact2Label", pf2, "2");
+    setPos("vence2", "vence2Label", pv2, "V");
+    setPos("corteT", "corteTLabel", pct, "T");
+    ["fact2","fact2Label","vence2","vence2Label","corteT","corteTLabel","corte","corteLabel"].forEach(id => {
+        let el = document.getElementById(id); if(el) el.style.display = id.includes("Label")?"block":"flex";
+    });
+    actualizarMeses(true);
 }
 
-// Interacción Drag
+function contraerSegundaFactura() {
+    ["fact2","fact2Label","vence2","vence2Label","corteT","corteTLabel"].forEach(id => {
+        let el = document.getElementById(id); if(el) el.style.display = "none";
+    });
+    actualizarMeses(false);
+}
+
+function actualizarMeses(tres) {
+    if(!fechaInstalacionGlobal) return;
+    let m = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+    let f = fechaInstalacionGlobal;
+    let m1 = m[f.getMonth()], f2 = new Date(f); f2.setMonth(f2.getMonth()+1);
+    let m2 = m[f2.getMonth()], f3 = new Date(f); f3.setMonth(f3.getMonth()+2);
+    let m3 = m[f3.getMonth()];
+    document.getElementById("meses").innerHTML = `<span>${m1}</span><span>${m2}</span>${tres?`<span>${m3}</span>`:''}`;
+}
+
+// --- MOTOR DE DRAG CORREGIDO ---
 const timeline = document.getElementById("timeline");
-const dragStart = (e) => { isDragging = true; startX = e.touches ? e.touches[0].clientX : e.clientX; startPos = posActual; timeline.style.cursor = "grabbing"; };
-const dragMove = (e) => {
-    if (!isDragging) return;
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    const rect = timeline.getBoundingClientRect();
-    const delta = ((x - startX) / rect.width) * 100 * 0.5;
-    posActual = Math.max(0, Math.min(100, startPos - delta));
+let dragging = false;
+let startX = 0;
+let startPos = 0;
+
+const startDrag = (e) => { 
+    dragging = true; 
+    startX = e.touches ? e.touches[0].clientX : e.clientX; 
+    startPos = posActual; 
+    timeline.style.cursor = "grabbing";
+};
+
+const doDrag = (e) => {
+    if(!dragging) return;
+    let currentX = e.touches ? e.touches[0].clientX : e.clientX;
+    let rect = timeline.getBoundingClientRect();
+    let deltaX = currentX - startX;
+    
+    // CORRECCIÓN 1: Sensibilidad ajustada para movimiento controlado
+    const movimiento = (deltaX / rect.width) * 40; 
+    let nuevaPos = startPos - movimiento;
+    
+    posActual = Math.max(0, Math.min(100, nuevaPos));
     renderTimeline(posActual);
 };
-const dragEnd = () => { isDragging = false; timeline.style.cursor = "grab"; };
 
-timeline.addEventListener("mousedown", dragStart);
-window.addEventListener("mousemove", dragMove);
-window.addEventListener("mouseup", dragEnd);
-timeline.addEventListener("touchstart", dragStart, { passive: false });
-window.addEventListener("touchmove", (e) => { if (isDragging) e.preventDefault(); dragMove(e); }, { passive: false });
-window.addEventListener("touchend", dragEnd);
+const stopDrag = () => { 
+    dragging = false; 
+    timeline.style.cursor = "grab";
+};
+
+// CORRECCIÓN 3: Eventos limitados al contenedor timeline para evitar saltos fuera de área
+timeline.addEventListener("mousedown", startDrag);
+timeline.addEventListener("mousemove", doDrag);
+timeline.addEventListener("mouseup", stopDrag);
+
+timeline.addEventListener("touchstart", (e) => { startDrag(e); }, {passive: false});
+timeline.addEventListener("touchmove", (e) => { if(dragging) { e.preventDefault(); doDrag(e); } }, {passive: false});
+timeline.addEventListener("touchend", stopDrag);
 
 function limpiar() { location.reload(); }
 function abrirAyuda() { document.getElementById("modalAyuda").style.display = "flex"; }
