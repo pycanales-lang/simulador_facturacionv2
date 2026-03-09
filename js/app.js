@@ -47,11 +47,11 @@ function simular() {
     actualizarMesesUI(false);
 
     const posInst = (diaInst / timelineDias) * 100;
-    
+        
     let posFact1 = (cicloActual <= diaInst && cicloActual !== 1) 
         ? ((30 + cicloActual) / timelineDias) * 100
-        : (cicloActual === 1 ? 52 : (cicloActual / timelineDias) * 100
-
+        : (cicloActual === 1 ? 52 : (cicloActual / timelineDias) * 100);
+    
     const regla = REGLAS_NEGOCIO.ciclos[cicloActual];
     
     let offsetVence = (regla.vence >= regla.emision) 
@@ -328,4 +328,5 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
 
