@@ -106,7 +106,7 @@ function actualizarLogicaNegocio(pos) {
     const posC1 = parseFloat(document.getElementById("corte").style.left) || 0;
 
     let estado = "EN PLAZO", color = "var(--success)", mensaje = "";
-    let diasExo = Math.round(((posFact1 - posInst) / 100) * 60);
+    let diasExo = Math.round(((posFact1 - posInst) / 100) * 90);
 
     if (pos < posInst) {
          mensaje = "Aún no instalado";
@@ -257,7 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const uxPago = document.getElementById("ux-pago");
             if(uxPago) uxPago.style.left = posActual + "%";
             const dayLabel = document.getElementById("ux-day");
-            if(dayLabel) dayLabel.innerText = Math.round((posActual / 100) * 60);
+            if(dayLabel) dayLabel.innerText = Math.round((posActual / 100) * 90);
         });
     }
 });
@@ -321,6 +321,7 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
 
 
 
