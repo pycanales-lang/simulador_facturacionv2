@@ -8,7 +8,6 @@
 <title>Simulador Facturación Pro - Siebel 2026</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-
 <link rel="stylesheet" href="css/styles.css">
 </head>
 
@@ -42,13 +41,7 @@
 <div id="meses" class="meses"></div>
 
 <!-- CICLO DE FACTURACIÓN -->
-<div id="cicloUI" style="
-margin-top:10px;
-text-align:center;
-font-size:13px;
-font-weight:600;
-opacity:0.9;
-"></div>
+<div id="cicloUI" style="margin-top:10px;text-align:center;font-size:13px;font-weight:600;opacity:0.9;"></div>
 
 
 <!-- ============================================== -->
@@ -65,17 +58,15 @@ CONTROL DE DÍAS TRANSCURRIDOS (DÍA
 </label>
 
 <div class="ux-timeline-track" id="uxTrack">
+
+<!-- CICLOS -->
 <div class="ux-ciclos">
-
 <div class="ux-ciclo" style="left:1%">1</div>
-
 <div class="ux-ciclo" style="left:11.6%">7</div>
-
 <div class="ux-ciclo" style="left:25%">15</div>
-
 <div class="ux-ciclo" style="left:35%">21</div>
-
 </div>
+
 <div class="ux-event" id="ux-inst">
 <span class="ux-icon" style="background:var(--success)">🏠</span>
 <span class="ux-label">Inst</span>
@@ -129,38 +120,21 @@ step="0.1">
 <!-- RESULTADOS -->
 
 <div class="ux-status-panel">
-
 <div id="infoUX"></div>
-
-<div
-id="ux-message"
-class="ux-dynamic-desc"
-style="display:none">
-</div>
-
+<div id="ux-message" class="ux-dynamic-desc" style="display:none"></div>
 </div>
 
 
-<!-- FECHAS CLAVES -->
+<!-- FECHAS -->
 
 <div class="ux-dates-board">
 <div id="detalleFechasUX"></div>
 </div>
 
 
-<div
-id="bannerChurnUX"
-class="churn-banner"
-style="display:none;">
-
-<h4 style="font-size:13px; color:white">
-🚨 RIESGO CRÍTICO: Early Churn
-</h4>
-
-<p style="font-size:11px; color:#ffdadd">
-Cuenta nueva con pago atrasado. ¡Gestión inmediata!
-</p>
-
+<div id="bannerChurnUX" class="churn-banner" style="display:none;">
+<h4 style="font-size:13px; color:white">🚨 RIESGO CRÍTICO: Early Churn</h4>
+<p style="font-size:11px; color:#ffdadd">Cuenta nueva con pago atrasado. ¡Gestión inmediata!</p>
 </div>
 
 </div>
@@ -175,13 +149,9 @@ Cuenta nueva con pago atrasado. ¡Gestión inmediata!
 <div class="timeline" id="timeline">
 
 <div id="playhead">
-
 <div id="diaBadge">Día 0</div>
-
 <div class="playhead-arrow"></div>
-
 </div>
-
 
 <div id="timelineTrack">
 
@@ -217,21 +187,12 @@ Cuenta nueva con pago atrasado. ¡Gestión inmediata!
 </div>
 </div>
 
-
 <div id="info" class="result"></div>
 <div id="detalleFacturacion" class="result"></div>
 
-
 <div id="bannerChurn" class="churn-banner">
-
-<h4 style="font-size:13px; color:white">
-🚨 RIESGO CRÍTICO: Early Churn
-</h4>
-
-<p style="font-size:11px; color:#ffdadd">
-Cuenta nueva con pago atrasado. ¡Gestión inmediata!
-</p>
-
+<h4 style="font-size:13px; color:white">🚨 RIESGO CRÍTICO: Early Churn</h4>
+<p style="font-size:11px; color:#ffdadd">Cuenta nueva con pago atrasado. ¡Gestión inmediata!</p>
 </div>
 
 </div>
@@ -243,9 +204,7 @@ Cuenta nueva con pago atrasado. ¡Gestión inmediata!
 
 <div class="modal-content">
 
-<div
-style="text-align:right; font-weight:bold; cursor:pointer"
-onclick="cerrarAyuda()">
+<div style="text-align:right;font-weight:bold;cursor:pointer" onclick="cerrarAyuda()">
 CERRAR ✖
 </div>
 
@@ -260,10 +219,9 @@ CERRAR ✖
 
 </div>
 
+</div>
 
 <script src="js/app.js"></script>
-
-</div>
 
 </body>
 </html>
