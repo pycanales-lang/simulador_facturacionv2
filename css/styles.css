@@ -409,4 +409,49 @@ button {
 }
 .ux-date-val { font-weight: bold; color: white;}
 
+/* =========================
+   CICLOS DE FACTURACIÓN
+========================= */
+
+.ux-ciclos{
+position:absolute;
+top:-22px;
+width:100%;
+height:20px;
+pointer-events:none;
+}
+
+.ux-ciclo{
+
+position:absolute;
+
+font-size:10px;
+
+font-weight:bold;
+
+color:#FFD166;
+
+transform:translateX(-50%);
+
+opacity:0.8;
+
+}
+
+.ux-ciclo::after{
+
+content:"";
+
+display:block;
+
+width:1px;
+
+height:10px;
+
+background:rgba(255,255,255,0.4);
+
+margin:auto;
+
+margin-top:2px;
+
+}
 
