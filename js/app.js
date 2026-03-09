@@ -63,9 +63,9 @@ function simular() {
     let offsetCorte = 32; 
     const posC1 = posFact1 + (offsetCorte / timelineDias * 100);
 
-    const posFact2 = posFact1 + 50;
-    const posV2 = posV1 + 50;
-    const posC2 = posC1 + 50;
+    const posFact2 = posFact1 + (30 / timelineDias * 100);
+    const posV2 = posV1 + (30 / timelineDias * 100);
+    const posC2 = posC1 + (30 / timelineDias * 100);
 
     setPos("inst", "instLabel", posInst, "🏠");
     setPos("fact", "factLabel", posFact1, "🧾");
@@ -328,5 +328,6 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
 
 
