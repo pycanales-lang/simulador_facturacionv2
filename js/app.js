@@ -86,7 +86,7 @@ function renderTimeline(pos) {
     const offset = (50 - pos) * TRACK_SCALE;
     track.style.transform = `translateX(${offset}%)`;
 
-    const diaCalendario = Math.round((pos / 100) * 60);
+    const diaCalendario = Math.round((pos / 100) * 90);
     diaBadge.innerText = `Día ${diaCalendario}`;
 
     setPos("pay", "payLabel", pos, "💰");
@@ -321,5 +321,6 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
 
 
