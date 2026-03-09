@@ -14,6 +14,7 @@ const REGLAS_NEGOCIO = {
 };
 
 let posActual = 0, fechaInstalacionGlobal = null, cicloActual = 0, esCuentaNueva = false;
+let timelineDias = 60;
 let isDragging = false, startX = 0, startPos = 0;
 
 const TRACK_SCALE = 3; // Escala visual
@@ -31,6 +32,12 @@ function simular() {
 
     fechaInstalacionGlobal = new Date(fStr + 'T00:00:00');
     const diaInst = fechaInstalacionGlobal.getDate();
+    // AJUSTE DINÁMICO DEL RANGO DE TIMELINE
+    if(diaInst >= 15){
+        timelineDias = 90;
+    }else{
+        timelineDias = 60;
+    }
     cicloActual = obtenerCicloAsignado(diaInst);
 
     const hoy = new Date();
@@ -39,11 +46,11 @@ function simular() {
 
     actualizarMesesUI(false);
 
-    const posInst = (diaInst / 90) * 100;
+    const posInst = (diaInst / timelineDias) * 100;
     
     let posFact1 = (cicloActual <= diaInst && cicloActual !== 1) 
-        ? ((30 + cicloActual) / 60) * 100 
-        : (cicloActual === 1 ? 52 : (cicloActual / 60) * 100);
+        ? ((30 + cicloActual) / timelineDias) * 100
+        : (cicloActual === 1 ? 52 : (cicloActual / timelineDias) * 100
 
     const regla = REGLAS_NEGOCIO.ciclos[cicloActual];
     
@@ -51,10 +58,10 @@ function simular() {
         ? (regla.vence - regla.emision)
         : (30 - regla.emision + regla.vence);
         
-    const posV1 = posFact1 + (offsetVence / 60 * 100);
+    const posV1 = posFact1 + (offsetVence / timelineDias * 100);
     
     let offsetCorte = 32; 
-    const posC1 = posFact1 + (offsetCorte / 60 * 100);
+    const posC1 = posFact1 + (offsetCorte / timelineDias * 100);
 
     const posFact2 = posFact1 + 50;
     const posV2 = posV1 + 50;
@@ -86,7 +93,7 @@ function renderTimeline(pos) {
     const offset = (50 - pos) * TRACK_SCALE;
     track.style.transform = `translateX(${offset}%)`;
 
-    const diaCalendario = Math.round((pos / 100) * 90);
+    const diaCalendario = Math.round((pos / 100) * timelineDias);
     diaBadge.innerText = `Día ${diaCalendario}`;
 
     setPos("pay", "payLabel", pos, "💰");
@@ -257,7 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const uxPago = document.getElementById("ux-pago");
             if(uxPago) uxPago.style.left = posActual + "%";
             const dayLabel = document.getElementById("ux-day");
-            if(dayLabel) dayLabel.innerText = Math.round((posActual / 100) * 90);
+            if(dayLabel) dayLabel.innerText = Math.round((posActual / 100) * timelineDias);
         });
     }
 });
@@ -321,3 +328,4 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
