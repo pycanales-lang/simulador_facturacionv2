@@ -342,9 +342,17 @@ button {
 }
 
 .ux-pago-cursor {
-    position: absolute; top: 60px; transform: translateX(-50%);
-    display: flex; flex-direction: column; align-items: center; z-index: 4;
-    transition: none; pointer-events: none;
+    position: absolute;
+    top: 60px;
+    transform: translate3d(-50%,0,0);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 4;
+    pointer-events: none;
+
+    /* ACELERACIÓN GPU */
+    will-change: left;
 }
 .ux-pago-icon {
     width: 38px; height: 38px; background: #FFD166; border-radius: 50%; display: flex;
@@ -357,13 +365,23 @@ button {
 
 /* Thumb super grande transparente para dominar los toques */
 .absolute-slider {
-    position: absolute !important; top: -30px; left: 0; width: 100%; height: 120px;
-    opacity: 0; cursor: pointer; z-index: 10;
-    /* MEJORAS MÓVILES */
-    -webkit-appearance: none; appearance: none; background: transparent;
-    touch-action: pan-y; /* Permite scroll vertical pero regala el swipe horizontal al slider */
-    -webkit-tap-highlight-color: transparent; /* Quita el cuadro gris feo de Android */
-    outline: none; /* Quita borde focus */
+    position: absolute !important;
+    top: -30px;
+    left: 0;
+    width: 100%;
+    height: 120px;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+
+    /* MEJORA MOVIL */
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
 }
 /* Hacer el verdadero "agarre" gigante para que los pulgares no fallen */
 .absolute-slider::-webkit-slider-thumb {
@@ -390,4 +408,5 @@ button {
     display: flex; justify-content: space-between;
 }
 .ux-date-val { font-weight: bold; color: white;}
+
 
