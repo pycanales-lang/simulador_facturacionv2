@@ -162,8 +162,21 @@ function actualizarLogicaNegocio(pos) {
     fCorte.setDate(fEmi.getDate() + 32);
 
     let detalleHTML = `
-        <div style="text-align:left; font-size:13px; line-height:1.8;">
-            <div><span style="opacity:0.8">🏠 Instalación:</span> <strong>${dInstText}</strong></div>`;
+    <div style="text-align:left; font-size:13px; line-height:1.8;">
+    
+    <div style="
+    background:rgba(255,255,255,0.08);
+    padding:8px;
+    border-radius:6px;
+    margin-bottom:8px;
+    font-weight:600;
+    color:#FFD166;
+    text-align:center;
+    ">
+    🔄 Ciclo de Facturación: ${cicloActual}
+    </div>
+    
+    <div><span style="opacity:0.8">🏠 Instalación:</span> <strong>${dInstText}</strong></div>`;
 
     if (pos >= posFact1) {
         detalleHTML += `<div><span style="opacity:0.8">🧾 Emisión F1:</span> <strong>${fEmi.toLocaleDateString()}</strong></div>`;
@@ -308,3 +321,4 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
