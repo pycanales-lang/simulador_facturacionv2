@@ -130,7 +130,7 @@ function actualizarLogicaNegocio(pos) {
          document.getElementById("bannerChurn").style.display = "block";
          estado = "EARLY CHURN";
          color = "var(--dark-danger)";
-         mensaje = "¡ALERTA! Riesgo alto de bajada temprana.";
+         mensaje = "¡ALERTA! Riesgo de bajada temprana por Mora.";
     } else {
          document.getElementById("bannerChurn").style.display = "none";
     }
@@ -321,4 +321,5 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
 
