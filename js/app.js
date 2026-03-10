@@ -44,7 +44,7 @@ function simular() {
     const diffMeses = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 + (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
     esCuentaNueva = diffMeses <= 4;
 
-    actualizarMesesUI(false);
+    actualizarMesesUI(true);
 
     const posInst = (diaInst / timelineDias) * 100;
         
@@ -369,6 +369,7 @@ function calcularProximoEvento(posActual){
 
     return `Próximo evento: ${proximo.nombre} en ${diasRestantes} días`;
 }
+
 
 
 
