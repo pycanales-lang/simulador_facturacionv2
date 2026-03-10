@@ -111,9 +111,11 @@ function actualizarLogicaNegocio(pos) {
     const posFact1 = parseFloat(document.getElementById("fact").style.left) || 0;
     const posV1 = parseFloat(document.getElementById("vence").style.left) || 0;
     const posC1 = parseFloat(document.getElementById("corte").style.left) || 0;
+    
+    let diasExo = Math.round(((posFact1 - posInst) / 100) * timelineDias);
 
     let estado = "EN PLAZO", color = "var(--success)", mensaje = "";
-    const posInst = (0 / timelineDias) * 100;
+    const posInst = parseFloat(document.getElementById("inst").style.left) || 0;
 
     if (pos < posInst) {
          mensaje = "Aún no instalado";
@@ -369,6 +371,7 @@ function calcularProximoEvento(posActual){
 
     return `Próximo evento: ${proximo.nombre} en ${diasRestantes} días`;
 }
+
 
 
 
