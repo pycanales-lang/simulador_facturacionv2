@@ -26,7 +26,7 @@ function obtenerCicloAsignado(dia) {
     return 1;
 }
 
-function simular() {
+function simular(){
 
     const fStr = document.getElementById("fecha").value;
     if (!fStr) return alert("Seleccione fecha de instalación");
@@ -43,8 +43,9 @@ function simular() {
     cicloActual = obtenerCicloAsignado(diaInst);
 
     const hoy = new Date();
-    const diffMeses = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 +
-                      (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
+    const diffMeses =
+        (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 +
+        (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
 
     esCuentaNueva = diffMeses <= 4;
 
@@ -82,6 +83,7 @@ function simular() {
     setPos("corteT", "corteTLabel", posC2, "🚫");
 
     const exoBar = document.getElementById("exoBar");
+
     if(exoBar){
         exoBar.style.left = posInst + "%";
         exoBar.style.width = (posFact1 - posInst) + "%";
@@ -126,33 +128,34 @@ function actualizarLogicaNegocio(pos){
     const posV1 = parseFloat(document.getElementById("vence").style.left) || 0;
     const posC1 = parseFloat(document.getElementById("corte").style.left) || 0;
 
+    /* CORRECCIÓN: variable que faltaba */
     let diasExo = Math.round(((posFact1 - posInst) / 100) * timelineDias);
 
     let estado = "EN PLAZO", color = "var(--success)", mensaje = "";
 
-    if (pos < posInst) {
+    if (pos < posInst){
         mensaje = "Aún no instalado";
     }
-    else if (pos >= posInst && pos < posFact1) {
+    else if (pos >= posInst && pos < posFact1){
         mensaje = "Servicio activo sin facturación.";
     }
-    else if (pos >= posFact1 && pos <= posV1) {
+    else if (pos >= posFact1 && pos <= posV1){
         mensaje = "Factura emitida. Recordar pagar en fecha.";
     }
 
-    if (pos > posV1 && pos < posC1) {
+    if (pos > posV1 && pos < posC1){
         estado = "EN MORA";
         color = "var(--warning)";
         mensaje = "Cliente con pago atrasado.";
     }
 
-    if (pos >= posC1) {
+    if (pos >= posC1){
         estado = "CORTE PARCIAL";
         color = "var(--danger)";
         mensaje = "Servicio suspendido.";
     }
 
-    if (esCuentaNueva && pos >= posC1) {
+    if (esCuentaNueva && pos >= posC1){
         document.getElementById("bannerChurn").style.display = "block";
         estado = "EARLY CHURN";
         color = "var(--dark-danger)";
@@ -173,80 +176,21 @@ function actualizarLogicaNegocio(pos){
         <span class="total-factura">Gs. ${total.toLocaleString()}</span>
         <div style="font-size:12px; margin-top:5px; color:#ddd">Días exonerados: <strong>${Math.max(0, diasExo)}</strong></div>
     `;
-
-    const dInstText = fechaInstalacionGlobal.toLocaleDateString();
-
-    const fEmi = new Date(fechaInstalacionGlobal);
-
-    fEmi.setDate(cicloActual);
-
-    if (cicloActual <= fechaInstalacionGlobal.getDate() && cicloActual !== 1) {
-        fEmi.setMonth(fEmi.getMonth() + 1);
-    }
-    else if (cicloActual === 1) {
-        fEmi.setMonth(fEmi.getMonth() + 1);
-    }
-
-    const regla = REGLAS_NEGOCIO.ciclos[cicloActual];
-
-    const offsetVenceLocal =
-        (regla.vence >= regla.emision)
-        ? (regla.vence - regla.emision)
-        : (30 - regla.emision + regla.vence);
-
-    const fVence = new Date(fEmi);
-
-    fVence.setDate(fEmi.getDate() + offsetVenceLocal);
-
-    const fCorte = new Date(fEmi);
-
-    fCorte.setDate(fEmi.getDate() + 32);
-
-    let detalleHTML = `
-    <div style="text-align:left; font-size:13px; line-height:1.8;">
-    
-    <div style="
-    background:rgba(255,255,255,0.08);
-    padding:8px;
-    border-radius:6px;
-    margin-bottom:8px;
-    font-weight:600;
-    color:#FFD166;
-    text-align:center;
-    ">
-    🔄 Ciclo de Facturación: ${cicloActual}
-    </div>
-    
-    <div><span style="opacity:0.8">🏠 Instalación:</span> <strong>${dInstText}</strong></div>`;
-
-    if (pos >= posFact1) {
-        detalleHTML += `<div><span style="opacity:0.8">🧾 Emisión F1:</span> <strong>${fEmi.toLocaleDateString()}</strong></div>`;
-    }
-
-    if (pos >= posV1) {
-        detalleHTML += `<div><span style="opacity:0.8">📅 Vencimiento 1:</span> <strong>${fVence.toLocaleDateString()}</strong></div>`;
-    }
-
-    if (pos >= posC1) {
-        detalleHTML += `<div><span style="opacity:0.8">🚫 Corte Parcial:</span> <strong>${fCorte.toLocaleDateString()}</strong></div>`;
-    }
-
-    detalleHTML += `</div>`;
-
-    document.getElementById("detalleFacturacion").innerHTML = detalleHTML;
 }
 
 function setPos(id, lb, pos, txt){
 
-    const e = document.getElementById(id),
-          l = document.getElementById(lb);
+    const e = document.getElementById(id);
+    const l = document.getElementById(lb);
 
     if(e){
         e.style.left = pos + "%";
         e.innerHTML = txt;
     }
 
-    if(l) l.style.left = pos + "%";
+    if(l){
+        l.style.left = pos + "%";
+    }
 }
 
 function actualizarMesesUI(tresMeses){
