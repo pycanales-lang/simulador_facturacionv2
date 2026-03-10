@@ -60,7 +60,7 @@ function simular() {
         
     const posV1 = posFact1 + (offsetVence / timelineDias * 100);
     
-    let offsetCorte = 32; 
+    let offsetCorte = (32 / 60) * timelineDias; 
     const posC1 = posFact1 + (offsetCorte / timelineDias * 100);
 
     const posFact2 = posFact1 + (30 / timelineDias * 100);
@@ -113,7 +113,7 @@ function actualizarLogicaNegocio(pos) {
     const posC1 = parseFloat(document.getElementById("corte").style.left) || 0;
 
     let estado = "EN PLAZO", color = "var(--success)", mensaje = "";
-    let diasExo = Math.round(((posFact1 - posInst) / 100) * 90);
+    const posInst = (0 / timelineDias) * 100;
 
     if (pos < posInst) {
          mensaje = "Aún no instalado";
@@ -369,6 +369,7 @@ function calcularProximoEvento(posActual){
 
     return `Próximo evento: ${proximo.nombre} en ${diasRestantes} días`;
 }
+
 
 
 
