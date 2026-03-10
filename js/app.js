@@ -320,6 +320,12 @@ function actualizarUX() {
         }
     }
 
+    const prox = calcularProximoEvento(posActual);
+    const proxUI = document.getElementById("proximoEvento");
+    
+    if(proxUI){
+        proxUI.innerText = prox;
+    }
     const baseDetalle = document.getElementById("detalleFacturacion");
     const uxDetalle = document.getElementById("detalleFechasUX");
     if(baseDetalle && uxDetalle) uxDetalle.innerHTML = baseDetalle.innerHTML;
@@ -363,5 +369,6 @@ function calcularProximoEvento(posActual){
 
     return `Próximo evento: ${proximo.nombre} en ${diasRestantes} días`;
 }
+
 
 
