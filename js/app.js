@@ -328,6 +328,40 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+/**
+ * AGREGAMOS MEJORAS PARA EL SIMULADOR
+ */
+function calcularProximoEvento(posActual){
 
+    const posFact1 = parseFloat(document.getElementById("fact").style.left) || 0;
+    const posV1 = parseFloat(document.getElementById("vence").style.left) || 0;
+    const posC1 = parseFloat(document.getElementById("corte").style.left) || 0;
+    const posFact2 = parseFloat(document.getElementById("fact2").style.left) || 0;
+    const posV2 = parseFloat(document.getElementById("vence2").style.left) || 0;
+
+    const eventos = [
+        {nombre:"Emisión Factura",pos:posFact1},
+        {nombre:"Vencimiento",pos:posV1},
+        {nombre:"Corte Parcial",pos:posC1},
+        {nombre:"Factura 2",pos:posFact2},
+        {nombre:"Vencimiento 2",pos:posV2}
+    ];
+
+    let proximo=null;
+
+    eventos.forEach(e=>{
+        if(e.pos>posActual){
+            if(!proximo || e.pos<proximo.pos){
+                proximo=e;
+            }
+        }
+    });
+
+    if(!proximo) return "";
+
+    const diasRestantes = Math.round(((proximo.pos-posActual)/100)*timelineDias);
+
+    return `Próximo evento: ${proximo.nombre} en ${diasRestantes} días`;
+}
 
 
