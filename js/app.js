@@ -258,15 +258,6 @@ function actualizarMesesUI() {
         cursor.setMonth(cursor.getMonth() + 1);
     }
 
-    const primerMes = document.createElement("span");
-    primerMes.className = "mes-label";
-    primerMes.innerText = mesesNombre[fechaInicio.getMonth()];
-    primerMes.style.position = "absolute";
-    primerMes.style.left = "0%";
-    primerMes.style.opacity = "1";
-    primerMes.dataset.pos = 0;
-
-    contenedor.prepend(primerMes);
 }
 
 function actualizarMesesVisibles(posActual){
@@ -385,6 +376,7 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
 
 
 
