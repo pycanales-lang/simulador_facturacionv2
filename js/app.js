@@ -236,12 +236,15 @@ function actualizarMesesUI() {
     const fechaFin = new Date(fechaInicio);
     fechaFin.setDate(fechaFin.getDate() + timelineDias);
 
+    const diaInst = fechaInicio.getDate();
+    const posInicio = (diaInst / timelineDias) * 100;
+
     let cursor = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), 1);
 
     while(cursor <= fechaFin){
 
         const diffDias = Math.floor((cursor - fechaInicio) / (1000*60*60*24));
-        const posicion = (diffDias / timelineDias) * 100;
+        const posicion = posInicio + (diffDias / timelineDias) * 100;
 
         const mesDiv = document.createElement("span");
         mesDiv.className = "mes-label";
@@ -376,6 +379,7 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
 
 
 
