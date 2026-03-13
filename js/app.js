@@ -100,7 +100,7 @@ function renderTimeline(pos) {
 
     setPos("pay", "payLabel", pos, "💰");
 
-    actualizarLogicaNegocio(pos);
+    actualizarMesesVisibles(pos); // 👈 ESTA LINEA NUEVA
 
 }
 
@@ -385,6 +385,7 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
 
 
 
