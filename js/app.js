@@ -219,15 +219,46 @@ function setPos(id, lb, pos, txt) {
     if (l) l.style.left = pos + "%";
 }
 
-function actualizarMesesUI(tresMeses) {
+function actualizarMesesUI() {
+
     if (!fechaInstalacionGlobal) return;
-    const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    const m1 = fechaInstalacionGlobal.getMonth();
-    const m2 = (m1 + 1) % 12;
-    const m3 = (m1 + 2) % 12;
-    document.getElementById("meses").innerHTML = `
-        <span>${meses[m1]}</span><span>${meses[m2]}</span>${tresMeses ? `<span>${meses[m3]}</span>` : ""}
-    `;
+
+    const contenedor = document.getElementById("meses");
+    contenedor.innerHTML = "";
+
+    const mesesNombre = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+    const fechaInicio = new Date(fechaInstalacionGlobal);
+    const fechaFin = new Date(fechaInicio);
+    fechaFin.setDate(fechaFin.getDate() + timelineDias);
+
+    let cursor = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), 1);
+
+    while(cursor <= fechaFin){
+
+        const diffDias = Math.floor((cursor - fechaInicio) / (1000*60*60*24));
+        const posicion = (diffDias / timelineDias) * 100;
+
+        const mesDiv = document.createElement("span");
+        mesDiv.className = "mes-label";
+        mesDiv.innerText = mesesNombre[cursor.getMonth()];
+
+        mesDiv.style.position = "absolute";
+        mesDiv.style.left = posicion + "%";
+        mesDiv.style.transform = "translateX(-50%)";
+
+        contenedor.appendChild(mesDiv);
+
+        cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    const primerMes = document.createElement("span");
+    primerMes.className = "mes-label";
+    primerMes.innerText = mesesNombre[fechaInicio.getMonth()];
+    primerMes.style.position = "absolute";
+    primerMes.style.left = "0%";
+
+    contenedor.prepend(primerMes);
 }
 
 // FUNCIONES DE AYUDA Y LIMPIEZA (CORRECCIÓN)
@@ -328,3 +359,4 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
