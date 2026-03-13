@@ -106,6 +106,7 @@ button {
 }
 
 .meses { 
+    position: relative;
     display: flex; 
     justify-content: space-between; 
     margin-top: 20px; 
@@ -454,4 +455,5 @@ margin:auto;
 margin-top:2px;
 
 }
+
 
