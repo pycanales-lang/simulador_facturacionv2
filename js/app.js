@@ -86,8 +86,10 @@ function simular() {
 }
 
 function renderTimeline(pos) {
+
     const track = document.getElementById("timelineTrack");
     const diaBadge = document.getElementById("diaBadge");
+
     if(!track || !diaBadge) return;
 
     const offset = (50 - pos) * TRACK_SCALE;
@@ -97,7 +99,10 @@ function renderTimeline(pos) {
     diaBadge.innerText = `Día ${diaCalendario}`;
 
     setPos("pay", "payLabel", pos, "💰");
+
     actualizarLogicaNegocio(pos);
+
+    actualizarMesesVisibles(pos); // 👈 ESTA LINEA NUEVA
 }
 
 function actualizarLogicaNegocio(pos) {
@@ -246,6 +251,8 @@ function actualizarMesesUI() {
         mesDiv.style.position = "absolute";
         mesDiv.style.left = posicion + "%";
         mesDiv.style.transform = "translateX(-50%)";
+        mesDiv.style.opacity = "0";
+        mesDiv.dataset.pos = posicion;
 
         contenedor.appendChild(mesDiv);
 
@@ -257,8 +264,28 @@ function actualizarMesesUI() {
     primerMes.innerText = mesesNombre[fechaInicio.getMonth()];
     primerMes.style.position = "absolute";
     primerMes.style.left = "0%";
+    primerMes.style.opacity = "1";
+    primerMes.dataset.pos = 0;
 
     contenedor.prepend(primerMes);
+}
+
+function actualizarMesesVisibles(posActual){
+
+    const meses = document.querySelectorAll(".mes-label");
+
+    meses.forEach(m => {
+
+        const pos = parseFloat(m.dataset.pos);
+
+        if(posActual >= pos){
+            m.style.opacity = "1";
+        }else{
+            m.style.opacity = "0";
+        }
+
+    });
+
 }
 
 // FUNCIONES DE AYUDA Y LIMPIEZA (CORRECCIÓN)
@@ -359,4 +386,5 @@ function actualizarUX() {
     const uxChurn = document.getElementById("bannerChurnUX");
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
+
 
