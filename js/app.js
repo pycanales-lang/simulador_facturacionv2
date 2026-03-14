@@ -140,7 +140,7 @@ function simular() {
     }
 
     posActual = posInst;
-    renderTimeline(posActual);
+    actualizarReglaFechas();
 }
 
 function renderTimeline(pos) {
@@ -438,10 +438,30 @@ function actualizarUX() {
     if(baseChurn && uxChurn) uxChurn.style.display = baseChurn.style.display;
 }
 
+function actualizarReglaFechas(){
 
+if(!fechaInstalacionGlobal) return;
 
+const inst = new Date(fechaInstalacionGlobal);
 
+const f1 = new Date(inst);
+f1.setDate(inst.getDate()+7);
 
+const venc = new Date(inst);
+venc.setDate(inst.getDate()+21);
 
+const corte = new Date(inst);
+corte.setDate(inst.getDate()+35);
 
+const formato = d => d.toLocaleDateString("es-PY",{day:"2-digit",month:"short"});
 
+document.getElementById("timelineFechas").innerHTML=`
+
+<span>${formato(inst)}</span>
+<span>${formato(f1)}</span>
+<span>${formato(venc)}</span>
+<span>${formato(corte)}</span>
+
+`;
+
+}
