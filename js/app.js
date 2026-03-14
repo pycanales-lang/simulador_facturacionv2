@@ -72,6 +72,13 @@ const REGLAS_NEGOCIO = {
 };
 
 let posActual = 0, fechaInstalacionGlobal = null, cicloActual = 0, esCuentaNueva = false;
+
+let posFact1 = 0;
+let posV1 = 0;
+let posC1 = 0;
+let posFact2 = 0;
+let posV2 = 0;
+
 let timelineDias = 60;
 let isDragging = false, startX = 0, startPos = 0;
 
@@ -116,13 +123,13 @@ function simular() {
         ? (regla.vence - regla.emision)
         : (30 - regla.emision + regla.vence);
         
-    const posV1 = posFact1 + (offsetVence / timelineDias * 100);
+    posV1 = posFact1 + (offsetVence / timelineDias * 100);
     
     let offsetCorte = 32; 
-    const posC1 = posFact1 + (offsetCorte / timelineDias * 100);
+    posC1 = posFact1 + (offsetCorte / timelineDias * 100);
 
-    const posFact2 = posFact1 + (30 / timelineDias * 100);
-    const posV2 = posV1 + (30 / timelineDias * 100);
+    posFact2 = posFact1 + (30 / timelineDias * 100);
+    posV2 = posV1 + (30 / timelineDias * 100);
     const posC2 = posC1 + (30 / timelineDias * 100);
 
     setPos("inst", "instLabel", posInst, "🏠");
