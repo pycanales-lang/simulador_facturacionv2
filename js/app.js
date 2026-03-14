@@ -140,7 +140,9 @@ function simular() {
     }
 
     posActual = posInst;
-    actualizarReglaFechas();
+
+    generarReglaTiempo();
+    renderTimeline(posActual);
 }
 
 function renderTimeline(pos) {
@@ -463,5 +465,40 @@ document.getElementById("timelineFechas").innerHTML=`
 <span>${formato(corte)}</span>
 
 `;
+
+}
+
+function generarReglaTiempo(){
+
+if(!fechaInstalacionGlobal) return;
+
+const regla = document.getElementById("timelineRegla");
+if(!regla) return;
+
+regla.innerHTML="";
+
+const meses = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+const totalDias = timelineDias;
+
+for(let d=0; d<=totalDias; d+=15){
+
+const fecha = new Date(fechaInstalacionGlobal);
+fecha.setDate(fechaInstalacionGlobal.getDate()+d);
+
+const pos = (d/totalDias)*100;
+
+const marca = document.createElement("div");
+marca.className="regla-marca";
+marca.style.left = pos+"%";
+
+marca.innerHTML=`
+<div>${fecha.getDate()} ${meses[fecha.getMonth()]}</div>
+<div class="regla-linea"></div>
+`;
+
+regla.appendChild(marca);
+
+}
 
 }
