@@ -275,6 +275,11 @@ function actualizarLogicaNegocio(pos) {
 
     detalleHTML += `</div>`;
     document.getElementById("detalleFacturacion").innerHTML = detalleHTML;
+
+    document.getElementById("det-exo").innerText = "Gs. " + (diasExo * (p/30)).toLocaleString();
+    document.getElementById("det-f1").innerText = "Gs. " + saldoF1.toLocaleString();
+    document.getElementById("det-f2").innerText = "Gs. " + p.toLocaleString();
+    document.getElementById("det-adm").innerText = "Gs. " + REGLAS_NEGOCIO.config.cargo_adm.toLocaleString();
 }
 
 function setPos(id, lb, pos, txt) {
