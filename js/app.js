@@ -304,7 +304,7 @@ document.getElementById("det-f2").innerText = "-";
 
 }
 
-if(pos >= posC1){
+if(pos >= posV1){
 
 document.getElementById("det-adm").innerText =
 "Gs. " + REGLAS_NEGOCIO.config.cargo_adm.toLocaleString();
