@@ -502,3 +502,15 @@ regla.appendChild(marca);
 }
 
 }
+
+function toggleFacturaDetalle(){
+
+const box = document.getElementById("facturaDetalle");
+
+if(box.style.display==="none" || box.style.display===""){
+box.style.display="block";
+}else{
+box.style.display="none";
+}
+
+}
