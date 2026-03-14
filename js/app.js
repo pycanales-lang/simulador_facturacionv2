@@ -276,10 +276,44 @@ function actualizarLogicaNegocio(pos) {
     detalleHTML += `</div>`;
     document.getElementById("detalleFacturacion").innerHTML = detalleHTML;
 
-    document.getElementById("det-exo").innerText = "Gs. " + (diasExo * (p/30)).toLocaleString();
-    document.getElementById("det-f1").innerText = "Gs. " + saldoF1.toLocaleString();
-    document.getElementById("det-f2").innerText = "Gs. " + p.toLocaleString();
-    document.getElementById("det-adm").innerText = "Gs. " + REGLAS_NEGOCIO.config.cargo_adm.toLocaleString();
+    
+    const exoMonto = Math.round((diasExo * (p/30)));
+
+document.getElementById("det-exo").innerText =
+"Gs. " + exoMonto.toLocaleString();
+
+if(pos >= posFact1){
+
+document.getElementById("det-f1").innerText =
+"Gs. " + saldoF1.toLocaleString();
+
+}else{
+
+document.getElementById("det-f1").innerText = "-";
+
+}
+
+if(pos >= posV1){
+
+document.getElementById("det-f2").innerText =
+"Gs. " + p.toLocaleString();
+
+}else{
+
+document.getElementById("det-f2").innerText = "-";
+
+}
+
+if(pos >= posC1){
+
+document.getElementById("det-adm").innerText =
+"Gs. " + REGLAS_NEGOCIO.config.cargo_adm.toLocaleString();
+
+}else{
+
+document.getElementById("det-adm").innerText = "-";
+
+}
 }
 
 function setPos(id, lb, pos, txt) {
