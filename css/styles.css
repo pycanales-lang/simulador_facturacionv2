@@ -116,14 +116,29 @@ button {
     min-height: 21px; 
 }
 
-.timeline-fechas{
-display:flex;
-justify-content:space-between;
+.timeline-regla{
+position:relative;
+width:100%;
+height:22px;
+margin-bottom:10px;
 font-size:11px;
-margin-bottom:12px;
 color:#FFD166;
-opacity:0.9;
 font-weight:600;
+}
+
+.regla-marca{
+position:absolute;
+transform:translateX(-50%);
+text-align:center;
+}
+
+.regla-linea{
+position:absolute;
+top:14px;
+width:1px;
+height:8px;
+background:rgba(255,255,255,0.4);
+left:50%;
 }
 
 /* --- TIMELINE MOTOR INVISIBLE BASE --- */
