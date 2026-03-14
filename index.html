@@ -25,6 +25,20 @@
 <label>Fecha instalación</label>
 <input type="date" id="fecha">
 
+<label>Producto</label>
+<select id="producto" onchange="cargarPlanes()">
+<option value="">Seleccionar</option>
+<option value="tv">TV</option>
+<option value="internet">INTERNET</option>
+<option value="combo">TV + INTERNET</option>
+<option value="tactica">OFERTA TÁCTICA</option>
+</select>
+
+<label>Plan</label>
+<select id="planSelect" onchange="aplicarPlan()">
+<option value="">Seleccionar plan</option>
+</select>
+
 <label>Valor plan</label>
 <input type="number" id="plan" placeholder="0">
 
