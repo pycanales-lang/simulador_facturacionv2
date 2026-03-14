@@ -2,6 +2,64 @@
  * SIMULADOR TELCO PRO - MOTOR DINÁMICO SIEBEL 2026
  * Sincronización total de Timeline, Esferas y Mensajes de Negocio
  */
+const PLANES = {
+
+tv:[
+{nombre:"TV Básico",precio:95000},
+{nombre:"TV Full",precio:120000},
+{nombre:"TV Premium",precio:150000}
+],
+
+internet:[
+{nombre:"Internet 150MB",precio:110000},
+{nombre:"Internet 300MB",precio:140000},
+{nombre:"Internet 600MB",precio:180000}
+],
+
+combo:[
+{nombre:"Dúo Básico",precio:180000},
+{nombre:"Dúo Plus",precio:220000},
+{nombre:"Dúo Premium",precio:260000}
+]
+
+};
+
+function cargarPlanes(){
+
+const producto = document.getElementById("producto").value;
+const select = document.getElementById("planSelect");
+
+select.innerHTML = '<option value="">Seleccionar plan</option>';
+
+if(producto === "tactica"){
+return;
+}
+
+PLANES[producto].forEach((plan,i)=>{
+
+const option = document.createElement("option");
+
+option.value = i;
+option.textContent = plan.nombre + " - " + plan.precio.toLocaleString();
+
+select.appendChild(option);
+
+});
+
+}
+
+function aplicarPlan(){
+
+const producto = document.getElementById("producto").value;
+const index = document.getElementById("planSelect").value;
+
+if(index === "") return;
+
+const plan = PLANES[producto][index];
+
+document.getElementById("plan").value = plan.precio;
+
+}
 
 const REGLAS_NEGOCIO = {
     ciclos: {
