@@ -206,7 +206,28 @@ function actualizarLogicaNegocio(pos) {
          document.getElementById("bannerChurn").style.display = "none";
     }
 
-    const total = (estado === "EN PLAZO" || estado === "Aún no instalado") ? saldoF1 : (saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm);
+    let total = 0;
+
+if(pos < posV1){
+
+// Antes del vencimiento
+total = saldoF1;
+
+}
+
+else if(pos >= posV1 && pos < posFact2){
+
+// Después del vencimiento pero antes de F2
+total = saldoF1;
+
+}
+
+else{
+
+// Después de emisión F2
+total = saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm;
+
+}
 
     document.getElementById("info").innerHTML = `
         <div class="state-badge" style="background:${color}; color:${(estado === 'EN MORA') ? 'black' : 'white'}">${estado}</div>
@@ -293,7 +314,7 @@ document.getElementById("det-f1").innerText = "-";
 
 }
 
-if(pos >= posV1){
+if(pos >= posFact2){
 
 document.getElementById("det-f2").innerText =
 "Gs. " + p.toLocaleString();
@@ -304,7 +325,7 @@ document.getElementById("det-f2").innerText = "-";
 
 }
 
-if(pos >= posV1){
+if(pos >= posFact2){
 
 document.getElementById("det-adm").innerText =
 "Gs. " + REGLAS_NEGOCIO.config.cargo_adm.toLocaleString();
