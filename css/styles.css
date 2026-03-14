@@ -481,4 +481,20 @@ margin-top:2px;
 
 }
 
+.factura-toggle{
+margin-top:12px;
+font-size:12px;
+cursor:pointer;
+color:#FFD166;
+font-weight:600;
+}
 
+.factura-detalle{
+margin-top:8px;
+font-size:12px;
+background:rgba(255,255,255,0.06);
+padding:10px;
+border-radius:8px;
+display:none;
+line-height:1.6;
+}
