@@ -116,6 +116,16 @@ button {
     min-height: 21px; 
 }
 
+.timeline-fechas{
+display:flex;
+justify-content:space-between;
+font-size:11px;
+margin-bottom:12px;
+color:#FFD166;
+opacity:0.9;
+font-weight:600;
+}
+
 /* --- TIMELINE MOTOR INVISIBLE BASE --- */
 .timeline { 
     position: relative; 
