@@ -161,6 +161,7 @@ function renderTimeline(pos) {
     setPos("pay", "payLabel", pos, "💰");
 
     actualizarLogicaNegocio(pos);
+    actualizarBarraEstado(pos);
     actualizarMesesVisibles(pos);
 }
 
