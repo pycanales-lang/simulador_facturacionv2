@@ -48,6 +48,51 @@ select.appendChild(option);
 
 }
 
+function actualizarBarraEstado(pos){
+
+const barra = document.getElementById("barraFill");
+const texto = document.getElementById("estadoServicio");
+
+if(!barra) return;
+
+barra.style.width = pos + "%";
+
+/* colores por estado */
+
+const posFact1 = posFact1Global;
+const posV1 = posV1Global;
+const posC1 = posC1Global;
+
+if(pos < posFact1){
+
+barra.style.background="#22c55e";
+texto.innerText="Estado: Servicio activo";
+
+}
+
+else if(pos >= posFact1 && pos <= posV1){
+
+barra.style.background="#3b82f6";
+texto.innerText="Estado: Facturado";
+
+}
+
+else if(pos > posV1 && pos < posC1){
+
+barra.style.background="#f59e0b";
+texto.innerText="Estado: En mora";
+
+}
+
+else{
+
+barra.style.background="#ef4444";
+texto.innerText="Estado: Corte parcial";
+
+}
+
+}
+
 function aplicarPlan(){
 
 const producto = document.getElementById("producto").value;
