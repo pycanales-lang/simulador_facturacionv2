@@ -55,39 +55,43 @@ const texto = document.getElementById("estadoServicio");
 
 if(!barra) return;
 
+/* mover barra */
+
 barra.style.width = pos + "%";
 
-/* colores por estado */
+/* obtener posiciones reales */
 
 const posFact1 = posFact1Global;
 const posV1 = posV1Global;
 const posC1 = posC1Global;
 
+/* cambiar color según estado */
+
 if(pos < posFact1){
 
-barra.style.background="#22c55e";
-texto.innerText="Estado: Servicio activo";
+barra.style.background = "#22c55e";
+texto.innerText = "Estado: Servicio activo";
 
 }
 
 else if(pos >= posFact1 && pos <= posV1){
 
-barra.style.background="#3b82f6";
-texto.innerText="Estado: Facturado";
+barra.style.background = "#3b82f6";
+texto.innerText = "Estado: Facturado";
 
 }
 
 else if(pos > posV1 && pos < posC1){
 
-barra.style.background="#f59e0b";
-texto.innerText="Estado: En mora";
+barra.style.background = "#f59e0b";
+texto.innerText = "Estado: En mora";
 
 }
 
 else{
 
-barra.style.background="#ef4444";
-texto.innerText="Estado: Corte parcial";
+barra.style.background = "#ef4444";
+texto.innerText = "Estado: Corte parcial";
 
 }
 
@@ -421,15 +425,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const slider = document.getElementById("timeSlider");
     if(slider){
         slider.addEventListener("input",(e)=>{
-            posActual = parseFloat(e.target.value);
-            renderTimeline(posActual);
-            const uxPago = document.getElementById("ux-pago");
-            if(uxPago) uxPago.style.left = posActual + "%";
-            const dayLabel = document.getElementById("ux-day");
-            if(dayLabel) dayLabel.innerText = Math.round((posActual / 100) * timelineDias);
+
+        posActual = parseFloat(e.target.value);
+        
+        renderTimeline(posActual);
+        
+        actualizarBarraEstado(posActual);
+        
+        const uxPago = document.getElementById("ux-pago");
+        
+        if(uxPago) uxPago.style.left = posActual + "%";
+        
+        const dayLabel = document.getElementById("ux-day");
+        
+        if(dayLabel) dayLabel.innerText = Math.round((posActual / 100) * timelineDias);
+        
         });
     }
 });
+
+
 
 function actualizarUX() {
     const posInst = parseFloat(document.getElementById("inst").style.left) || 0;
