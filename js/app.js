@@ -208,7 +208,7 @@ function actualizarLogicaNegocio(pos) {
          document.getElementById("bannerChurn").style.display = "none";
     }
 
-    // CORRECCIÓN TOTAL: El cargo adm y F2 solo suman cuando llegamos a la emisión de F2
+    // LÓGICA TOTAL: Saldo F1 + Factura 2 + Cargo Adm (estos dos últimos solo desde la emisión de F2)
     let total = 0;
     if (pos >= posFact1 && pos < posFact2) {
         total = saldoF1;
@@ -269,22 +269,18 @@ function actualizarLogicaNegocio(pos) {
     detalleHTML += `</div>`;
     document.getElementById("detalleFacturacion").innerHTML = detalleHTML;
 
-    // DETALLE DE VALORES (CAJA INFERIOR)
+    // --- SECCIÓN DE ACTUALIZACIÓN DE VALORES EN EL DETALLE ---
     const exoMonto = Math.round((diasExo * (p/30)));
     document.getElementById("det-exo").innerText = "Gs. " + exoMonto.toLocaleString();
 
-    // Saldo F1
+    // 1. Saldo F1
     document.getElementById("det-f1").innerText = (pos >= posFact1) ? "Gs. " + saldoF1.toLocaleString() : "-";
 
-    // Factura F2: Solo sale cuando alcanza la emisión de la segunda
+    // 2. Factura F2 (Solo aparece el monto cuando se emite la F2)
     document.getElementById("det-f2").innerText = (pos >= posFact2) ? "Gs. " + p.toLocaleString() : "-";
 
-    // Cargo Administrativo: Sale como aviso al vencer F1, con valor real al emitir F2
-    if(pos >= posV1){
-        document.getElementById("det-adm").innerText = "Gs. " + REGLAS_NEGOCIO.config.cargo_adm.toLocaleString();
-    } else {
-        document.getElementById("det-adm").innerText = "-";
-    }
+    // 3. Cargo Administrativo (Aparece el monto cuando vence la F1)
+    document.getElementById("det-adm").innerText = (pos >= posV1) ? "Gs. " + REGLAS_NEGOCIO.config.cargo_adm.toLocaleString() : "-";
 }
 
 function setPos(id, lb, pos, txt) {
