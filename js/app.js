@@ -72,13 +72,6 @@ const REGLAS_NEGOCIO = {
 };
 
 let posActual = 0, fechaInstalacionGlobal = null, cicloActual = 0, esCuentaNueva = false;
-
-let posFact1 = 0;
-let posV1 = 0;
-let posC1 = 0;
-let posFact2 = 0;
-let posV2 = 0;
-
 let timelineDias = 60;
 let isDragging = false, startX = 0, startPos = 0;
 
@@ -123,13 +116,13 @@ function simular() {
         ? (regla.vence - regla.emision)
         : (30 - regla.emision + regla.vence);
         
-    posV1 = posFact1 + (offsetVence / timelineDias * 100);
+    const posV1 = posFact1 + (offsetVence / timelineDias * 100);
     
     let offsetCorte = 32; 
-    posC1 = posFact1 + (offsetCorte / timelineDias * 100);
+    const posC1 = posFact1 + (offsetCorte / timelineDias * 100);
 
-    posFact2 = posFact1 + (30 / timelineDias * 100);
-    posV2 = posV1 + (30 / timelineDias * 100);
+    const posFact2 = posFact1 + (30 / timelineDias * 100);
+    const posV2 = posV1 + (30 / timelineDias * 100);
     const posC2 = posC1 + (30 / timelineDias * 100);
 
     setPos("inst", "instLabel", posInst, "🏠");
@@ -182,6 +175,8 @@ function actualizarLogicaNegocio(pos) {
     const posFact1 = parseFloat(document.getElementById("fact").style.left) || 0;
     const posV1 = parseFloat(document.getElementById("vence").style.left) || 0;
     const posC1 = parseFloat(document.getElementById("corte").style.left) || 0;
+    const posFact2 = parseFloat(document.getElementById("fact2").style.left) || 0;
+    const posV2 = parseFloat(document.getElementById("vence2").style.left) || 0;
 
     let estado = "EN PLAZO", color = "var(--success)", mensaje = "";
     let diasExo = Math.round(((posFact1 - posInst) / 100) * 90);
@@ -213,28 +208,16 @@ function actualizarLogicaNegocio(pos) {
          document.getElementById("bannerChurn").style.display = "none";
     }
 
-    let total = 0;
-
-if(pos < posV1){
-
-// Antes del vencimiento
-total = saldoF1;
-
-}
-
-else if(pos >= posV1 && pos < posFact2){
-
-// Después del vencimiento pero antes de F2
-total = saldoF1;
-
-}
-
-else{
-
-// Después de emisión F2
-total = saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm;
-
-}
+    // CORRECCIÓN: El cargo administrativo se suma recién cuando se genera la segunda factura (posFact2)
+    // El monto total suma F1 pendiente + F2 actual + Cargo Adm
+    let total;
+    if (pos < posFact1) {
+        total = 0;
+    } else if (pos >= posFact1 && pos < posFact2) {
+        total = saldoF1;
+    } else {
+        total = saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm;
+    }
 
     document.getElementById("info").innerHTML = `
         <div class="state-badge" style="background:${color}; color:${(estado === 'EN MORA') ? 'black' : 'white'}">${estado}</div>
@@ -242,7 +225,6 @@ total = saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm;
         <span class="total-factura">Gs. ${total.toLocaleString()}</span>
         <div style="font-size:12px; margin-top:5px; color:#ddd">Días exonerados: <strong>${Math.max(0, diasExo)}</strong></div>
     `;
-
     const dInstText = fechaInstalacionGlobal.toLocaleDateString();
     const fEmi = new Date(fechaInstalacionGlobal);
     fEmi.setDate(cicloActual);
@@ -260,8 +242,7 @@ total = saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm;
     const fCorte = new Date(fEmi);
     fCorte.setDate(fEmi.getDate() + 32);
 
-    let detalleHTML = `
-    <div style="text-align:left; font-size:13px; line-height:1.8;">
+    let detalleHTML = `    <div style="text-align:left; font-size:13px; line-height:1.8;">
     
     <div style="
     background:rgba(255,255,255,0.08);
@@ -276,7 +257,6 @@ total = saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm;
     </div>
     
     <div><span style="opacity:0.8">🏠 Instalación:</span> <strong>${dInstText}</strong></div>`;
-
     if (pos >= posFact1) {
         detalleHTML += `<div><span style="opacity:0.8">🧾 Emisión F1:</span> <strong>${fEmi.toLocaleDateString()}</strong></div>`;
     }
@@ -286,9 +266,6 @@ total = saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm;
     if (pos >= posC1) {
         detalleHTML += `<div><span style="opacity:0.8">🚫 Corte Parcial:</span> <strong>${fCorte.toLocaleDateString()}</strong></div>`;
     }
-
-    const posFact2 = parseFloat(document.getElementById("fact2").style.left) || 0;
-    const posV2 = parseFloat(document.getElementById("vence2").style.left) || 0;
 
     if (pos >= posFact2) {
         const fEmi2 = new Date(fEmi);
@@ -321,7 +298,8 @@ document.getElementById("det-f1").innerText = "-";
 
 }
 
-if(pos >= posFact2){
+// F2 sale cuando se vence la factura 1 o se emite la 2
+if(pos >= posV1){
 
 document.getElementById("det-f2").innerText =
 "Gs. " + p.toLocaleString();
@@ -332,7 +310,8 @@ document.getElementById("det-f2").innerText = "-";
 
 }
 
-if(pos >= posFact2){
+// CORRECCIÓN: El cargo administrativo sale en el detalle al vencer F1, pero se suma al total en F2
+if(pos >= posV1){
 
 document.getElementById("det-adm").innerText =
 "Gs. " + REGLAS_NEGOCIO.config.cargo_adm.toLocaleString();
@@ -488,9 +467,9 @@ function actualizarUX() {
             descBox.style.display = "block";
             const estadoActual = badge.innerText;
             if (estadoActual === "Aún no instalado") {
-                 descBox.innerHTML = `Mueve el cursor para empezar.`;
+                 descBox.innerHTML = "Mueve el cursor para empezar.";
             } else if(estadoActual === "EN PLAZO" && posActual < posFact1) {
-                descBox.innerHTML = `Servicio activo.<br>Acumulas días exonerados.`;
+                descBox.innerHTML = "Servicio activo.<br>Acumulas días exonerados.";
             } else {
                 const mensajeOriginal = baseInfo.querySelector("p");
                 if (mensajeOriginal) descBox.innerText = mensajeOriginal.innerText;
@@ -524,15 +503,11 @@ corte.setDate(inst.getDate()+35);
 
 const formato = d => d.toLocaleDateString("es-PY",{day:"2-digit",month:"short"});
 
-document.getElementById("timelineFechas").innerHTML=`
-
+document.getElementById("timelineFechas").innerHTML= `
 <span>${formato(inst)}</span>
 <span>${formato(f1)}</span>
 <span>${formato(venc)}</span>
-<span>${formato(corte)}</span>
-
-`;
-
+<span>${formato(corte)}</span>`;
 }
 
 function generarReglaTiempo(){
@@ -559,11 +534,8 @@ const marca = document.createElement("div");
 marca.className="regla-marca";
 marca.style.left = pos+"%";
 
-marca.innerHTML=`
-<div>${fecha.getDate()} ${meses[fecha.getMonth()]}</div>
-<div class="regla-linea"></div>
-`;
-
+marca.innerHTML=`<div>${fecha.getDate()} ${meses[fecha.getMonth()]}</div>
+<div class="regla-linea"></div>`;
 regla.appendChild(marca);
 
 }
