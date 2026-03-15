@@ -49,52 +49,29 @@ select.appendChild(option);
 }
 
 function actualizarBarraEstado(pos){
+    const barra = document.getElementById("barraFill");
+    const texto = document.getElementById("estadoServicio");
+    if(!barra) return;
 
-const barra = document.getElementById("barraFill");
-const texto = document.getElementById("estadoServicio");
+    barra.style.width = pos + "%";
 
-if(!barra) return;
-
-/* mover barra */
-
-barra.style.width = pos + "%";
-
-/* obtener posiciones reales */
-
-const posFact1 = posFact1Global;
-const posV1 = posV1Global;
-const posC1 = posC1Global;
-
-/* cambiar color según estado */
-
-if(pos < posFact1){
-
-barra.style.background = "#22c55e";
-texto.innerText = "Estado: Servicio activo";
-
-}
-
-else if(pos >= posFact1 && pos <= posV1){
-
-barra.style.background = "#3b82f6";
-texto.innerText = "Estado: Facturado";
-
-}
-
-else if(pos > posV1 && pos < posC1){
-
-barra.style.background = "#f59e0b";
-texto.innerText = "Estado: En mora";
-
-}
-
-else{
-
-barra.style.background = "#ef4444";
-texto.innerText = "Estado: Corte parcial";
-
-}
-
+    // Usamos las variables globales que ahora sí tienen datos
+    if(pos < posFact1Global){
+        barra.style.background = "#22c55e";
+        texto.innerText = "Estado: Servicio activo";
+    }
+    else if(pos >= posFact1Global && pos <= posV1Global){
+        barra.style.background = "#3b82f6";
+        texto.innerText = "Estado: Facturado";
+    }
+    else if(pos > posV1Global && pos < posC1Global){
+        barra.style.background = "#f59e0b";
+        texto.innerText = "Estado: En mora";
+    }
+    else {
+        barra.style.background = "#ef4444";
+        texto.innerText = "Estado: Corte parcial";
+    }
 }
 
 function aplicarPlan(){
@@ -120,6 +97,11 @@ const REGLAS_NEGOCIO = {
     config: { cargo_adm: 12000 }
 };
 
+// Agrega estas 3 líneas arriba de todo, fuera de cualquier función
+let posFact1Global = 0;
+let posV1Global = 0;
+let posC1Global = 0;
+
 let posActual = 0, fechaInstalacionGlobal = null, cicloActual = 0, esCuentaNueva = false;
 let timelineDias = 60;
 let isDragging = false, startX = 0, startPos = 0;
@@ -139,6 +121,7 @@ function simular() {
 
     fechaInstalacionGlobal = new Date(fStr + 'T00:00:00');
     const diaInst = fechaInstalacionGlobal.getDate();
+    
     // AJUSTE DINÁMICO DEL RANGO DE TIMELINE
     if(diaInst >= 15){
         timelineDias = 90;
@@ -155,7 +138,8 @@ function simular() {
 
     const posInst = (diaInst / timelineDias) * 100;
         
-    let posFact1 = (cicloActual <= diaInst && cicloActual !== 1) 
+    // CORRECCIÓN: Se asigna a la variable global sin el "let" para que sea visible en todo el código
+    posFact1Global = (cicloActual <= diaInst && cicloActual !== 1) 
         ? ((30 + cicloActual) / timelineDias) * 100
         : (cicloActual === 1 ? 52 : (cicloActual / timelineDias) * 100);
     
@@ -165,19 +149,21 @@ function simular() {
         ? (regla.vence - regla.emision)
         : (30 - regla.emision + regla.vence);
         
-    const posV1 = posFact1 + (offsetVence / timelineDias * 100);
+    // CORRECCIÓN: Se asigna a las variables globales
+    posV1Global = posFact1Global + (offsetVence / timelineDias * 100);
     
     let offsetCorte = 32; 
-    const posC1 = posFact1 + (offsetCorte / timelineDias * 100);
+    posC1Global = posFact1Global + (offsetCorte / timelineDias * 100);
 
-    const posFact2 = posFact1 + (30 / timelineDias * 100);
-    const posV2 = posV1 + (30 / timelineDias * 100);
-    const posC2 = posC1 + (30 / timelineDias * 100);
+    const posFact2 = posFact1Global + (30 / timelineDias * 100);
+    const posV2 = posV1Global + (30 / timelineDias * 100);
+    const posC2 = posC1Global + (30 / timelineDias * 100);
 
+    // Actualizamos los setPos para que usen las variables globales corregidas
     setPos("inst", "instLabel", posInst, "🏠");
-    setPos("fact", "factLabel", posFact1, "🧾");
-    setPos("vence", "venceLabel", posV1, "📅");
-    setPos("corte", "corteLabel", posC1, "🚫");
+    setPos("fact", "factLabel", posFact1Global, "🧾");
+    setPos("vence", "venceLabel", posV1Global, "📅");
+    setPos("corte", "corteLabel", posC1Global, "🚫");
     setPos("fact2", "fact2Label", posFact2, "🧾");
     setPos("vence2", "vence2Label", posV2, "📅");
     setPos("corteT", "corteTLabel", posC2, "🚫");
@@ -185,7 +171,7 @@ function simular() {
     const exoBar = document.getElementById("exoBar");
     if(exoBar) {
         exoBar.style.left = posInst + "%";
-        exoBar.style.width = (posFact1 - posInst) + "%";
+        exoBar.style.width = (posFact1Global - posInst) + "%";
     }
 
     posActual = posInst;
