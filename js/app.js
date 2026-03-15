@@ -161,7 +161,7 @@ function renderTimeline(pos) {
     setPos("pay", "payLabel", pos, "💰");
 
     actualizarLogicaNegocio(pos);
-    actualizarMesesVisibles(pos); // 👈 ESTA LINEA NUEVA
+    actualizarMesesVisibles(pos);
 }
 
 function actualizarLogicaNegocio(pos) {
@@ -208,14 +208,11 @@ function actualizarLogicaNegocio(pos) {
          document.getElementById("bannerChurn").style.display = "none";
     }
 
-    // CORRECCIÓN: El cargo administrativo se suma recién cuando se genera la segunda factura (posFact2)
-    // El monto total suma F1 pendiente + F2 actual + Cargo Adm
-    let total;
-    if (pos < posFact1) {
-        total = 0;
-    } else if (pos >= posFact1 && pos < posFact2) {
+    // CORRECCIÓN TOTAL: El cargo adm y F2 solo suman cuando llegamos a la emisión de F2
+    let total = 0;
+    if (pos >= posFact1 && pos < posFact2) {
         total = saldoF1;
-    } else {
+    } else if (pos >= posFact2) {
         total = saldoF1 + p + REGLAS_NEGOCIO.config.cargo_adm;
     }
 
@@ -225,6 +222,7 @@ function actualizarLogicaNegocio(pos) {
         <span class="total-factura">Gs. ${total.toLocaleString()}</span>
         <div style="font-size:12px; margin-top:5px; color:#ddd">Días exonerados: <strong>${Math.max(0, diasExo)}</strong></div>
     `;
+
     const dInstText = fechaInstalacionGlobal.toLocaleDateString();
     const fEmi = new Date(fechaInstalacionGlobal);
     fEmi.setDate(cicloActual);
@@ -243,19 +241,9 @@ function actualizarLogicaNegocio(pos) {
     fCorte.setDate(fEmi.getDate() + 32);
 
     let detalleHTML = `    <div style="text-align:left; font-size:13px; line-height:1.8;">
-    
-    <div style="
-    background:rgba(255,255,255,0.08);
-    padding:8px;
-    border-radius:6px;
-    margin-bottom:8px;
-    font-weight:600;
-    color:#FFD166;
-    text-align:center;
-    ">
+    <div style="background:rgba(255,255,255,0.08); padding:8px; border-radius:6px; margin-bottom:8px; font-weight:600; color:#FFD166; text-align:center;">
     🔄 Ciclo de Facturación: ${cicloActual}
     </div>
-    
     <div><span style="opacity:0.8">🏠 Instalación:</span> <strong>${dInstText}</strong></div>`;
     if (pos >= posFact1) {
         detalleHTML += `<div><span style="opacity:0.8">🧾 Emisión F1:</span> <strong>${fEmi.toLocaleDateString()}</strong></div>`;
@@ -281,46 +269,22 @@ function actualizarLogicaNegocio(pos) {
     detalleHTML += `</div>`;
     document.getElementById("detalleFacturacion").innerHTML = detalleHTML;
 
-    
+    // DETALLE DE VALORES (CAJA INFERIOR)
     const exoMonto = Math.round((diasExo * (p/30)));
+    document.getElementById("det-exo").innerText = "Gs. " + exoMonto.toLocaleString();
 
-document.getElementById("det-exo").innerText =
-"Gs. " + exoMonto.toLocaleString();
+    // Saldo F1
+    document.getElementById("det-f1").innerText = (pos >= posFact1) ? "Gs. " + saldoF1.toLocaleString() : "-";
 
-if(pos >= posFact1){
+    // Factura F2: Solo sale cuando alcanza la emisión de la segunda
+    document.getElementById("det-f2").innerText = (pos >= posFact2) ? "Gs. " + p.toLocaleString() : "-";
 
-document.getElementById("det-f1").innerText =
-"Gs. " + saldoF1.toLocaleString();
-
-}else{
-
-document.getElementById("det-f1").innerText = "-";
-
-}
-
-// F2 sale cuando se vence la factura 1 o se emite la 2
-if(pos >= posV1){
-
-document.getElementById("det-f2").innerText =
-"Gs. " + p.toLocaleString();
-
-}else{
-
-document.getElementById("det-f2").innerText = "-";
-
-}
-
-// CORRECCIÓN: El cargo administrativo sale en el detalle al vencer F1, pero se suma al total en F2
-if(pos >= posV1){
-
-document.getElementById("det-adm").innerText =
-"Gs. " + REGLAS_NEGOCIO.config.cargo_adm.toLocaleString();
-
-}else{
-
-document.getElementById("det-adm").innerText = "-";
-
-}
+    // Cargo Administrativo: Sale como aviso al vencer F1, con valor real al emitir F2
+    if(pos >= posV1){
+        document.getElementById("det-adm").innerText = "Gs. " + REGLAS_NEGOCIO.config.cargo_adm.toLocaleString();
+    } else {
+        document.getElementById("det-adm").innerText = "-";
+    }
 }
 
 function setPos(id, lb, pos, txt) {
@@ -387,7 +351,6 @@ function actualizarMesesVisibles(posActual){
 
 }
 
-// FUNCIONES DE AYUDA Y LIMPIEZA (CORRECCIÓN)
 function abrirAyuda() {
     document.getElementById('modalAyuda').style.display = 'flex';
 }
