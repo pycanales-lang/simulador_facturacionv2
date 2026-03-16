@@ -5,21 +5,24 @@
 const PLANES = {
 
 tv:[
-{nombre:"TV Básico",precio:95000},
-{nombre:"TV Full",precio:120000},
-{nombre:"TV Premium",precio:150000}
+{nombre:"TV Inicial",precio:119000},
+{nombre:"TV Familiar",precio:155000},
+{nombre:"TV FULL**",precio:50000}
 ],
 
 internet:[
-{nombre:"Internet 150MB",precio:110000},
-{nombre:"Internet 300MB",precio:140000},
-{nombre:"Internet 600MB",precio:180000}
+{nombre:"Internet 100MB",precio:120000},
+{nombre:"Internet 200MB",precio:170000},
+{nombre:"Internet 300MB",precio:220000},
+{nombre:"Internet 400MB",precio:280000}
 ],
 
 combo:[
-{nombre:"Dúo Básico",precio:180000},
-{nombre:"Dúo Plus",precio:220000},
-{nombre:"Dúo Premium",precio:260000}
+{nombre:"Inicial + 200",precio:180000},
+{nombre:"Fliar + 200",precio:215000},
+{nombre:"Fliar + 300",precio:255000},
+{nombre:"Fliar + 400",precio:305000},
+{nombre:"Fliar + 600",precio:365000}
 ]
 
 };
