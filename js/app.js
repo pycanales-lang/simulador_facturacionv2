@@ -31,10 +31,25 @@ function cargarPlanes(){
 
 const producto = document.getElementById("producto").value;
 const select = document.getElementById("planSelect");
+const hint = document.getElementById("planHint");
+const planInput = document.getElementById("plan");
 
 select.innerHTML = '<option value="">Seleccionar plan</option>';
+select.disabled = false;
+if(hint) hint.innerText = "Selecciona un plan para cargar el valor automaticamente.";
 
 if(producto === "tactica"){
+select.disabled = true;
+if(planInput) {
+    planInput.value = "";
+    planInput.focus();
+}
+if(hint) hint.innerText = "Oferta tactica: ingresa el valor manualmente segun la propuesta.";
+return;
+}
+
+if(!producto || !PLANES[producto]){
+if(planInput) planInput.value = "";
 return;
 }
 
@@ -83,6 +98,7 @@ const producto = document.getElementById("producto").value;
 const index = document.getElementById("planSelect").value;
 
 if(index === "") return;
+if(!PLANES[producto]) return;
 
 const plan = PLANES[producto][index];
 
@@ -118,9 +134,66 @@ function obtenerCicloAsignado(dia) {
     return 1;
 }
 
+function mostrarErrorFormulario(mensaje) {
+    const error = document.getElementById("formError");
+    if(!error) return;
+    error.innerText = mensaje;
+    error.style.display = "block";
+}
+
+function limpiarErrorFormulario() {
+    const error = document.getElementById("formError");
+    if(!error) return;
+    error.innerText = "";
+    error.style.display = "none";
+}
+
+function actualizarCicloUI() {
+    const ciclo = document.getElementById("cicloUI");
+    if(!ciclo || !cicloActual) return;
+    ciclo.innerHTML = `Ciclo asignado: <strong>${cicloActual}</strong>`;
+}
+
+function sincronizarSlider(pos) {
+    const slider = document.getElementById("timeSlider");
+    const uxPago = document.getElementById("ux-pago");
+    const dayLabel = document.getElementById("ux-day");
+
+    if(slider) slider.value = pos;
+    if(uxPago) uxPago.style.left = pos + "%";
+    if(dayLabel) dayLabel.innerText = Math.round((pos / 100) * timelineDias);
+}
+
+function actualizarResumenComercial() {
+    const box = document.getElementById("resumenComercial");
+    if(!box || !fechaInstalacionGlobal) return;
+
+    const producto = document.getElementById("producto");
+    const planSelect = document.getElementById("planSelect");
+    const planValor = parseFloat(document.getElementById("plan").value) || 0;
+    const anticipo = parseFloat(document.getElementById("anticipo").value) || 0;
+    const productoTexto = producto.options[producto.selectedIndex]?.text || "-";
+    const planTexto = planSelect.disabled ? "Valor manual" : (planSelect.options[planSelect.selectedIndex]?.text || "Manual");
+
+    box.style.display = "block";
+    box.innerHTML = `
+        <div class="seller-summary-title">Resumen para el vendedor</div>
+        <div class="seller-grid">
+            <div class="seller-item"><span class="seller-label">Producto</span><span class="seller-value">${productoTexto}</span></div>
+            <div class="seller-item"><span class="seller-label">Plan</span><span class="seller-value">${planTexto}</span></div>
+            <div class="seller-item"><span class="seller-label">Ciclo</span><span class="seller-value">${cicloActual}</span></div>
+            <div class="seller-item"><span class="seller-label">Valor / anticipo</span><span class="seller-value">Gs. ${planValor.toLocaleString()} / Gs. ${anticipo.toLocaleString()}</span></div>
+        </div>
+    `;
+}
+
 function simular() {
     const fStr = document.getElementById("fecha").value;
-    if (!fStr) return alert("Seleccione fecha de instalación");
+    const p = parseFloat(document.getElementById("plan").value) || 0;
+    limpiarErrorFormulario();
+
+    if (!fStr) return mostrarErrorFormulario("Seleccione fecha de instalacion.");
+    if (p <= 0) return mostrarErrorFormulario("Ingrese un valor de plan mayor a cero.");
 
     fechaInstalacionGlobal = new Date(fStr + 'T00:00:00');
     const diaInst = fechaInstalacionGlobal.getDate();
@@ -132,6 +205,7 @@ function simular() {
         timelineDias = 60;
     }
     cicloActual = obtenerCicloAsignado(diaInst);
+    actualizarCicloUI();
 
     const hoy = new Date();
     const diffMeses = (hoy.getFullYear() - fechaInstalacionGlobal.getFullYear()) * 12 + (hoy.getMonth() - fechaInstalacionGlobal.getMonth());
@@ -181,6 +255,8 @@ function simular() {
 
     generarReglaTiempo();
     renderTimeline(posActual);
+    sincronizarSlider(posActual);
+    actualizarResumenComercial();
 }
 
 function renderTimeline(pos) {
@@ -201,6 +277,29 @@ function renderTimeline(pos) {
     actualizarLogicaNegocio(pos);
     actualizarBarraEstado(pos);
     actualizarMesesVisibles(pos);
+    actualizarProximoEvento(pos);
+}
+
+function actualizarProximoEvento(pos) {
+    const box = document.getElementById("proximoEvento");
+    if(!box || !fechaInstalacionGlobal) return;
+
+    const eventos = [
+        { nombre: "Emision F1", pos: parseFloat(document.getElementById("fact").style.left) || 0 },
+        { nombre: "Vencimiento F1", pos: parseFloat(document.getElementById("vence").style.left) || 0 },
+        { nombre: "Corte parcial", pos: parseFloat(document.getElementById("corte").style.left) || 0 },
+        { nombre: "Emision F2", pos: parseFloat(document.getElementById("fact2").style.left) || 0 },
+        { nombre: "Vencimiento F2", pos: parseFloat(document.getElementById("vence2").style.left) || 0 }
+    ];
+
+    const siguiente = eventos.find(e => pos < e.pos);
+    if(!siguiente) {
+        box.innerText = "No hay mas eventos dentro de esta simulacion.";
+        return;
+    }
+
+    const dias = Math.max(0, Math.round(((siguiente.pos - pos) / 100) * timelineDias));
+    box.innerText = `Proximo evento: ${siguiente.nombre} en ${dias} dia(s).`;
 }
 
 function actualizarLogicaNegocio(pos) {
@@ -470,6 +569,7 @@ function actualizarUX() {
     const descBox = document.getElementById("ux-message");
 
     if(baseInfo && uxInfo) {
+        uxInfo.classList.remove("empty-state");
         uxInfo.innerHTML = baseInfo.innerHTML;
         const badge = baseInfo.querySelector('.state-badge');
         if (badge && descBox) {
